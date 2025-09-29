@@ -22,6 +22,107 @@
         return RW_DEV.includes(h) || RW_ALLOW.some(match);
     }
 
+    /* ==========================
+       Locale & Translations
+    ========================== */
+    const pageLangRaw = (document.documentElement && document.documentElement.getAttribute('lang'))
+        || (navigator.language || navigator.userLanguage || '')
+        || '';
+
+    function normalizeLocale(raw) {
+        const val = (raw || '').trim().toLowerCase();
+        if (!val) return 'sv';
+        if (val.startsWith('sv') || val.startsWith('se') || val.startsWith('swe')) return 'sv';
+        if (val.startsWith('en') || val.startsWith('eng')) return 'en';
+        return 'sv';
+    }
+
+    const LOCALE = normalizeLocale(pageLangRaw);
+    const FALLBACK_LOCALE = 'sv';
+
+    const TEXT = {
+        sv: {
+            placeholderTitle: 'Läsverktyg',
+            placeholderBody: 'Denna domän är inte aktiverad för widgeten.',
+            placeholderSupport: 'Kontakta support',
+            widgetTitle: 'Läsverktyg',
+            widgetSubhead: '(Navigera med Tab)',
+            close: 'Stäng',
+            readLabel: 'LÄS',
+            pauseLabel: 'PAUS',
+            contrastLabel: 'KONTRAST',
+            spotlightLabel: 'RADFOKUS',
+            dyslexiaLabel: 'DYSLEXI',
+            hoverLabel: 'LÄS VID HOVRING',
+            subsLabel: 'UNDERTEXTER',
+            readAriaStart: 'Starta uppläsning',
+            readAriaPause: 'Pausa uppläsning',
+            readTitleStart: 'Starta uppläsning (Alt+L)',
+            readTitlePause: 'Pausa uppläsning (Alt+L)',
+            ttsNotSupported: 'Uppläsning stöds inte i denna webbläsare.',
+            settingsReadSpeed: 'Läshastighet',
+            settingsVoice: 'Språk',
+            voiceSwedish: 'Svenska',
+            voiceEnglish: 'Engelska',
+            settingsMaskOpacity: 'Mörkläggning',
+            settingsMaskHeight: 'Läsbandets höjd',
+            settingsLineSpacing: 'Radavstånd',
+            settingsWordSpacing: 'Ordavstånd',
+            settingsLetterSpacing: 'Teckenavstånd',
+            settingsTextSize: 'Textstorlek',
+            settingsBackground: 'Bakgrund',
+            settingsTextColor: 'Textfärg',
+            settingsTransparent: 'Transparent',
+            settingsBlack: 'Svart',
+            settingsColorDisabled: 'Ej tillgänglig med svart bakgrund',
+            touchUnavailable: 'Inte tillgängligt på touch-enheter'
+        },
+        en: {
+            placeholderTitle: 'Reading tools',
+            placeholderBody: 'This domain is not enabled for the widget.',
+            placeholderSupport: 'Contact support',
+            widgetTitle: 'Reading tools',
+            widgetSubhead: '(Navigate with Tab)',
+            close: 'Close',
+            readLabel: 'READ',
+            pauseLabel: 'PAUSE',
+            contrastLabel: 'CONTRAST',
+            spotlightLabel: 'LINE FOCUS',
+            dyslexiaLabel: 'DYSLEXIA',
+            hoverLabel: 'HOVER READ',
+            subsLabel: 'CAPTIONS',
+            readAriaStart: 'Start reading',
+            readAriaPause: 'Pause reading',
+            readTitleStart: 'Start reading (Alt+L)',
+            readTitlePause: 'Pause reading (Alt+L)',
+            ttsNotSupported: 'Text-to-speech is not supported in this browser.',
+            settingsReadSpeed: 'Reading speed',
+            settingsVoice: 'Voice',
+            voiceSwedish: 'Swedish',
+            voiceEnglish: 'English',
+            settingsMaskOpacity: 'Mask opacity',
+            settingsMaskHeight: 'Reading strip height',
+            settingsLineSpacing: 'Line spacing',
+            settingsWordSpacing: 'Word spacing',
+            settingsLetterSpacing: 'Letter spacing',
+            settingsTextSize: 'Text size',
+            settingsBackground: 'Background',
+            settingsTextColor: 'Text color',
+            settingsTransparent: 'Transparent',
+            settingsBlack: 'Black',
+            settingsColorDisabled: 'Not available with black background',
+            touchUnavailable: 'Unavailable on touch devices'
+        }
+    };
+
+    function t(key) {
+        const localeTable = TEXT[LOCALE] || {};
+        if (Object.prototype.hasOwnProperty.call(localeTable, key)) return localeTable[key];
+        const fallbackTable = TEXT[FALLBACK_LOCALE] || {};
+        if (Object.prototype.hasOwnProperty.call(fallbackTable, key)) return fallbackTable[key];
+        return key;
+    }
+
     /** Visas om domänen inte är tillåten (liten, diskret panel nere till höger) */
     function rwShowPlaceholder(reason) {
         // inget UI om du vill vara helt tyst: bara return;
@@ -33,10 +134,10 @@
             "padding:10px 12px; max-width:280px"
         ].join("");
         box.innerHTML =
-            "<strong>Läsverktyg</strong><br>" +
-            "Denna domän är inte aktiverad för widgeten.<br>" +
-            (reason ? "<small style='opacity:.7'>" + reason + "</small>" : "") +
-            "<div style='margin-top:8px'><a href='mailto:support@din-domän.se' style='color:#1b73e8;text-decoration:underline'>Kontakta support</a></div>";
+            `<strong>${t('placeholderTitle')}</strong><br>` +
+            `${t('placeholderBody')}<br>` +
+            (reason ? `<small style='opacity:.7'>${reason}</small>` : "") +
+            `<div style='margin-top:8px'><a href='mailto:support@din-domän.se' style='color:#1b73e8;text-decoration:underline'>${t('placeholderSupport')}</a></div>`;
         document.body.appendChild(box);
     }
 
@@ -206,7 +307,7 @@
        State
     ========================== */
     const prefs = Object.assign({
-        rate: 1.0, voiceName: '', zoom: 1,
+        rate: 1.0, voiceName: '', voiceLang: LOCALE, zoom: 1,
         contrast: false, dyslexia: false,
         subs: false,
         theme: { bg: '#ffffff', fg: '#111111', accent: '#1b73e8', underline: true },
@@ -215,6 +316,8 @@
         dys: { scale: 1, line: 1.6, letter: 0.02, word: 0.08 },
         hoverRate: 1.0
     }, loadPrefs());
+
+    if (!prefs.voiceLang) prefs.voiceLang = LOCALE;
 
     let reading = false, spotlightOn = false, hoverOn = false;
     let voices = [];
@@ -622,9 +725,36 @@
     ========================== */
     function refreshVoices() {
         const all = window.speechSynthesis.getVoices();
-        const sv = all.filter(v => v.lang && v.lang.startsWith('sv'));
-        const en = all.filter(v => v.lang && v.lang.startsWith('en'));
-        voices = [...sv, ...en];
+        if (!Array.isArray(all) || !all.length) {
+            voices = [];
+            return;
+        }
+
+        const desiredPrefix = LOCALE;
+        const fallbackPrefix = desiredPrefix === 'sv' ? 'en' : 'sv';
+
+        const main = all.filter(v => (v.lang || '').toLowerCase().startsWith(desiredPrefix));
+        const secondary = all.filter(v => (v.lang || '').toLowerCase().startsWith(fallbackPrefix) && !main.includes(v));
+        const rest = all.filter(v => !main.includes(v) && !secondary.includes(v));
+
+        voices = [...main, ...secondary, ...rest];
+
+        let chosen = voices.find(v => v.name === prefs.voiceName) || null;
+        const selectedLocale = normalizeLocale(chosen && chosen.lang);
+        if (!chosen || selectedLocale !== LOCALE) {
+            chosen = main[0] || voices[0] || null;
+        }
+
+        if (chosen) {
+            const chosenLocale = normalizeLocale(chosen.lang);
+            const needsNameUpdate = prefs.voiceName !== chosen.name;
+            const needsLangUpdate = prefs.voiceLang !== chosenLocale;
+            if (needsNameUpdate || needsLangUpdate) {
+                prefs.voiceName = chosen.name;
+                prefs.voiceLang = chosenLocale;
+                savePrefs(prefs);
+            }
+        }
     }
 
     function splitSentences(str) {
@@ -706,10 +836,10 @@
         const mi = btn.querySelector('.rw-ico .rw-mi');
         const lbl = btn.querySelector('.rw-label');
         btn.setAttribute('aria-pressed', isOn ? 'true' : 'false');
-        btn.setAttribute('aria-label', isOn ? 'Pausa uppläsning' : 'Starta uppläsning');
-        btn.title = isOn ? 'Pausa uppläsning (Alt+L)' : 'Starta uppläsning (Alt+L)';
+        btn.setAttribute('aria-label', isOn ? t('readAriaPause') : t('readAriaStart'));
+        btn.title = isOn ? t('readTitlePause') : t('readTitleStart');
         if (mi) mi.textContent = isOn ? 'auto_read_pause' : (ICONS.read || 'auto_read_play');
-        if (lbl) lbl.textContent = isOn ? 'PAUS' : 'LÄS';
+        if (lbl) lbl.textContent = isOn ? t('pauseLabel') : t('readLabel');
     }
 
     function stopReading() {
@@ -744,7 +874,7 @@
     }
 
     function speakFromText(text) {
-        if (!('speechSynthesis' in window)) { alert('Uppläsning stöds inte i denna webbläsare.'); return; }
+        if (!('speechSynthesis' in window)) { alert(t('ttsNotSupported')); return; }
         const sentences = splitSentences(text || '');
         if (!sentences.length) return;
 
@@ -803,7 +933,7 @@
 
 
     function speakFromElement(rootEl, startSentenceText, opts = {}) {
-        if (!('speechSynthesis' in window)) { alert('Uppläsning stöds inte i denna webbläsare.'); return; }
+        if (!('speechSynthesis' in window)) { alert(t('ttsNotSupported')); return; }
         const fallback = document.querySelector('main,article,[role="main"]');
         const el = rootEl || (fallback || document.body);
 
@@ -884,7 +1014,7 @@
 
 
     function speakFromSelection(range) {
-        if (!('speechSynthesis' in window)) { alert('Uppläsning stöds inte i denna webbläsare.'); return; }
+        if (!('speechSynthesis' in window)) { alert(t('ttsNotSupported')); return; }
         if (!range) return;
 
         let wrap = document.createElement('span'); wrap.id = `${NS}-selwrap`;
@@ -1115,6 +1245,7 @@
     function renderSettings(which, afterBtnEl) {
         settingsEl.classList.remove('active');
         settingsEl.innerHTML = '';
+        delete settingsEl.dataset.rwSection;
         if (!which) return;
         // Blockera spotlight/hover-inställning på touch helt
         if (isSmallScreen() && (which === 'spotlight' || which === 'hover')) return;
@@ -1124,32 +1255,51 @@
             if (cell) cell.appendChild(settingsEl);
         }
 
+        settingsEl.dataset.rwSection = which;
+
         const addRow = (label, input) => settingsEl.append(h('div', { class: 'rw-row' }, h('label', null, label), input));
         const addInline = (...nodes) => settingsEl.append(h('div', { class: 'rw-inline' }, ...nodes));
 
         if (which === 'read') {
-            addRow('Läshastighet',
+            addRow(t('settingsReadSpeed'),
                 h('input', {
                     class: 'rw-slider', type: 'range', min: '0.7', max: '1.6', step: '0.05', value: String(prefs.rate),
                     oninput: e => { prefs.rate = parseFloat(e.target.value); savePrefs(prefs); }
                 })
             );
-            const sel = h('select', { class: 'rw-select', onchange: e => { prefs.voiceName = e.target.value; savePrefs(prefs); } });
-            voices.forEach(v => {
-                const label = (v.lang || '').startsWith('sv') ? 'Svenska' : 'Engelska';
-                sel.appendChild(h('option', { value: v.name, selected: v.name === prefs.voiceName }, label));
+            const sel = h('select', {
+                class: 'rw-select',
+                onchange: e => {
+                    const name = e.target.value;
+                    prefs.voiceName = name;
+                    const found = voices.find(v => v.name === name) || null;
+                    prefs.voiceLang = normalizeLocale(found && found.lang);
+                    savePrefs(prefs);
+                }
             });
-            addRow('Språk', sel);
+            voices.forEach(v => {
+                const langCode = (v.lang || '').toLowerCase();
+                const labelKey = langCode.startsWith('sv') ? 'voiceSwedish' : (langCode.startsWith('en') ? 'voiceEnglish' : null);
+                const voiceName = v.name || '';
+                const baseLabel = labelKey ? t(labelKey) : ((v.lang || '').toUpperCase());
+                let optionLabel = voiceName || baseLabel || '';
+                if (baseLabel && voiceName && !voiceName.toLowerCase().includes(baseLabel.toLowerCase())) {
+                    optionLabel = `${baseLabel} - ${voiceName}`;
+                }
+                if (!optionLabel) optionLabel = t('settingsVoice');
+                sel.appendChild(h('option', { value: v.name, selected: v.name === prefs.voiceName }, optionLabel));
+            });
+            addRow(t('settingsVoice'), sel);
         }
 
         if (which === 'spotlight') {
-            addRow('Mörkläggning',
+            addRow(t('settingsMaskOpacity'),
                 h('input', {
                     class: 'rw-slider', type: 'range', min: '0', max: '0.95', step: '0.05', value: String(prefs.mask.opacity),
                     oninput: e => { prefs.mask.opacity = parseFloat(e.target.value); savePrefs(prefs); applyTheme(); }
                 })
             );
-            addRow('Läsbandets höjd',
+            addRow(t('settingsMaskHeight'),
                 h('input', {
                     class: 'rw-slider', type: 'range',
                     min: '60', max: '400', step: '4',
@@ -1164,25 +1314,25 @@
         }
 
         if (which === 'dys') {
-            addRow('Radavstånd',
+            addRow(t('settingsLineSpacing'),
                 h('input', {
                     class: 'rw-slider', type: 'range', min: '1.2', max: '2.2', step: '0.05', value: String(prefs.dys.line),
                     oninput: e => { prefs.dys.line = parseFloat(e.target.value); savePrefs(prefs); applyTheme(); }
                 })
             );
-            addRow('Ordavstånd',
+            addRow(t('settingsWordSpacing'),
                 h('input', {
                     class: 'rw-slider', type: 'range', min: '0', max: '0.4', step: '0.01', value: String(prefs.dys.word),
                     oninput: e => { prefs.dys.word = parseFloat(e.target.value); savePrefs(prefs); applyTheme(); }
                 })
             );
-            addRow('Teckenavstånd',
+            addRow(t('settingsLetterSpacing'),
                 h('input', {
                     class: 'rw-slider', type: 'range', min: '0', max: '0.2', step: '0.005', value: String(prefs.dys.letter),
                     oninput: e => { prefs.dys.letter = parseFloat(e.target.value); savePrefs(prefs); applyTheme(); }
                 })
             );
-            addRow('Textstorlek',
+            addRow(t('settingsTextSize'),
                 h('input', {
                     class: 'rw-slider', type: 'range', min: '0.9', max: '1.4', step: '0.02', value: String(prefs.dys.scale),
                     oninput: e => { prefs.dys.scale = parseFloat(e.target.value); savePrefs(prefs); applyTheme(); }
@@ -1191,7 +1341,7 @@
         }
 
         if (which === 'hover') {
-            addRow('Läshastighet',
+            addRow(t('settingsReadSpeed'),
                 h('input', {
                     class: 'rw-slider', type: 'range', min: '0.7', max: '1.6', step: '0.05', value: String(prefs.hoverRate),
                     oninput: e => { prefs.hoverRate = parseFloat(e.target.value); savePrefs(prefs); }
@@ -1200,7 +1350,7 @@
         }
 
         if (which === 'subs') {
-            addRow('Textstorlek',
+            addRow(t('settingsTextSize'),
                 h('input', {
                     class: 'rw-slider', type: 'range', min: '18', max: '64', step: '1',
                     value: String(prefs.ribbon.font),
@@ -1213,8 +1363,8 @@
             );
 
             const bgOptions = [
-                { label: 'Transparent', value: 'transparent' },
-                { label: 'Svart', value: '#000000' }
+                { label: t('settingsTransparent'), value: 'transparent' },
+                { label: t('settingsBlack'), value: '#000000' }
             ];
             const bgWrap = h('div', { class: 'rw-inline' });
             const fgWrap = h('div', { class: 'rw-inline' });
@@ -1235,7 +1385,7 @@
                         style: { background: col },
                         'data-color': col,
                         'aria-pressed': prefs.ribbon.fg.toLowerCase() === col.toLowerCase() ? 'true' : 'false',
-                        title: disabled ? 'Ej tillgänglig med svart bakgrund' : '',
+                        title: disabled ? t('settingsColorDisabled') : '',
                         disabled: disabled ? true : false,
                         onclick: () => {
                             if (disabled) return;
@@ -1277,9 +1427,9 @@
                 bgWrap.appendChild(btn);
             });
 
-            addRow('Bakgrund', bgWrap);
+            addRow(t('settingsBackground'), bgWrap);
             rebuildFgSwatches();
-            addRow('Textfärg', fgWrap);
+            addRow(t('settingsTextColor'), fgWrap);
         }
 
         settingsEl.classList.add('active');
@@ -1293,39 +1443,39 @@
         const cell = (btn) => h('div', { class: 'rw-toolcell' }, btn);
 
         return h('div', { class: 'rw-tools' },
-            cell(toolButton('read', 'read', 'LÄS', (e) => {
+            cell(toolButton('read', 'read', t('readLabel'), (e) => {
                 markKeyboardActivation(e);
                 toggleRead();
                 renderSettings(reading ? 'read' : null, e.currentTarget);
             })),
 
-            cell(toolButton('contrast', 'contrast', 'KONTRAST', (e) => {
+            cell(toolButton('contrast', 'contrast', t('contrastLabel'), (e) => {
                 markKeyboardActivation(e);
                 setContrast(!prefs.contrast);
                 renderSettings(null);
             })),
 
             // RADFOKUS bara >768 px
-            (!isSmallScreen() ? cell(toolButton('spotlight', 'spotlight', 'RADFOKUS', (e) => {
+            (!isSmallScreen() ? cell(toolButton('spotlight', 'spotlight', t('spotlightLabel'), (e) => {
                 markKeyboardActivation(e);
                 setSpotlight(!spotlightOn);
                 renderSettings(spotlightOn ? 'spotlight' : null, e.currentTarget);
             })) : null),
 
-            cell(toolButton('dys', 'dys', 'DYSLEXI', (e) => {
+            cell(toolButton('dys', 'dys', t('dyslexiaLabel'), (e) => {
                 markKeyboardActivation(e);
                 setDyslexia(!prefs.dyslexia);
                 prefs.dyslexia ? renderSettings('dys', e.currentTarget) : renderSettings(null);
             })),
 
             // HOVRING bara >768 px
-            (!isSmallScreen() ? cell(toolButton('hover', 'hover', 'LÄS VID HOVRING', (e) => {
+            (!isSmallScreen() ? cell(toolButton('hover', 'hover', t('hoverLabel'), (e) => {
                 markKeyboardActivation(e);
                 setHoverRead(!hoverOn);
                 hoverOn ? renderSettings('hover', e.currentTarget) : renderSettings(null);
             })) : null),
 
-            cell(toolButton('subs', 'subs', 'UNDERTEXTER', (e) => {
+            cell(toolButton('subs', 'subs', t('subsLabel'), (e) => {
                 markKeyboardActivation(e);
                 setSubs(!prefs.subs);
                 prefs.subs ? renderSettings('subs', e.currentTarget) : renderSettings(null);
@@ -1344,10 +1494,8 @@
 
             // Stäng inställningspanelen om den råkar visa spotlight/hover
             if (settingsEl && settingsEl.classList.contains('active')) {
-                const isSpotOrHoverOpen =
-                    settingsEl.querySelector('.rw-row label') &&
-                    /Mörkläggning|Läsbandets höjd|Läshastighet/.test(settingsEl.innerText);
-                if (isSpotOrHoverOpen) settingsEl.classList.remove('active');
+                const section = settingsEl.dataset.rwSection;
+                if (section === 'spotlight' || section === 'hover') settingsEl.classList.remove('active');
             }
         }
 
@@ -1376,7 +1524,7 @@
         const btn = document.getElementById(`${NS}-tool-hover`);
         if (btn) {
             btn.setAttribute('aria-disabled', 'true');
-            btn.title = 'Inte tillgängligt på touch-enheter';
+            btn.title = t('touchUnavailable');
             btn.style.opacity = .5;
             btn.style.pointerEvents = 'none';
         }
@@ -1398,10 +1546,10 @@
             h('div', { class: 'rw-header' },
                 h('div', { class: 'rw-title' },
                     iconEl('header'),
-                    h('span', null, 'Läsverktyg')
+                    h('span', null, t('widgetTitle'))
                 ),
                 // Subhead: renderas ALLTID – vi styr visning med CSS + aria
-                h('span', { class: 'rw-subhead', 'aria-hidden': isSmallScreen() ? 'true' : 'false' }, '(Navigera med Tab)')
+                h('span', { class: 'rw-subhead', 'aria-hidden': isSmallScreen() ? 'true' : 'false' }, t('widgetSubhead'))
             ),
 
             h('hr', { class: 'rw-hr' }),
@@ -1418,7 +1566,7 @@
                     class: 'rw-btn rw-focus',
                     type: 'button',
                     onclick: () => togglePanel(false)
-                }, 'Stäng')
+                }, t('close'))
             )
         );
 
@@ -1608,3 +1756,4 @@
         close() { togglePanel(false); }
     };
 })();
+

@@ -1,35 +1,117 @@
 <!doctype html>
 <html lang="sv">
+
 <head>
   <meta charset="utf-8" />
   <title>ReaderWidget – Testyta</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height: 1.6; margin: 0; }
-    header, main, footer { max-width: 900px; margin: 0 auto; padding: 1.25rem; }
-    header { padding-top: 2rem; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
-    figure { margin: 0; }
-    figcaption { font-size: .9rem; color: #555; }
-    .card { border: 1px solid #e8e8e8; border-radius: 12px; padding: 1rem; background: #fff; }
-    .muted { color: #666; }
-    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
-    pre { background: #f7f7f7; border-radius: 8px; padding: 1rem; overflow: auto; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ddd; padding: .5rem .6rem; text-align: left; }
-    th { background: #f3f3f3; }
-    .pill { display: inline-block; padding: .2rem .6rem; border-radius: 999px; background: #eef6ff; color: #0b67c2; font-size: .85rem; }
-    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
-    .spacer { height: 32px; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    header,
+    main,
+    footer {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1.25rem;
+    }
+
+    header {
+      padding-top: 2rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    figure {
+      margin: 0;
+    }
+
+    figcaption {
+      font-size: .9rem;
+      color: #555;
+    }
+
+    .card {
+      border: 1px solid #e8e8e8;
+      border-radius: 12px;
+      padding: 1rem;
+      background: #fff;
+    }
+
+    .muted {
+      color: #666;
+    }
+
+    code,
+    pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+
+    pre {
+      background: #f7f7f7;
+      border-radius: 8px;
+      padding: 1rem;
+      overflow: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border: 1px solid #ddd;
+      padding: .5rem .6rem;
+      text-align: left;
+    }
+
+    th {
+      background: #f3f3f3;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: .2rem .6rem;
+      border-radius: 999px;
+      background: #eef6ff;
+      color: #0b67c2;
+      font-size: .85rem;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+
+    .spacer {
+      height: 32px;
+    }
   </style>
 </head>
+
 <body>
 
   <header>
     <p class="pill">Demo</p>
     <h1>Hej och välkommen!</h1>
     <p>
-      Markera text och testa <strong>Läs</strong>, <strong>Undertexter</strong>, <strong>Radfokus</strong> och övriga verktyg i widgeten.
+      Markera text och testa <strong>Läs</strong>, <strong>Undertexter</strong>, <strong>Radfokus</strong> och övriga
+      verktyg i widgeten.
       Om något inte fungerar: <a href="#" aria-label="Kontakt – öppnar e-postklient">Kontakta Nercia</a>.
     </p>
     <div class="spacer"></div>
@@ -74,10 +156,7 @@
       <h2 id="media-title">Bilder (med alt-texter)</h2>
       <div class="grid">
         <figure class="card">
-          <img
-            alt="En stiliserad sol över ett berg (ikon)"
-            width="400" height="240"
-            src="data:image/svg+xml;utf8,
+          <img alt="En stiliserad sol över ett berg (ikon)" width="400" height="240" src="data:image/svg+xml;utf8,
               <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 480'>
                 <defs>
                   <linearGradient id='g' x1='0' y1='0' x2='0' y2='1'>
@@ -93,10 +172,7 @@
         </figure>
 
         <figure class="card">
-          <img
-            alt="En mörk nattlig himmel med måne och stadssilhuett (ikon)"
-            width="400" height="240"
-            src="data:image/svg+xml;utf8,
+          <img alt="En mörk nattlig himmel med måne och stadssilhuett (ikon)" width="400" height="240" src="data:image/svg+xml;utf8,
               <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 480'>
                 <rect width='800' height='480' fill='%230b1b3a'/>
                 <circle cx='120' cy='110' r='48' fill='%fff' fill-opacity='.9'/>
@@ -123,12 +199,28 @@
       <p class="muted">Bra för att testa cell-för-cell kontra radvis uppläsning.</p>
       <table>
         <thead>
-          <tr><th>Produkt</th><th>Enhet</th><th>Pris</th></tr>
+          <tr>
+            <th>Produkt</th>
+            <th>Enhet</th>
+            <th>Pris</th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td>Skärmfilter</td><td>st</td><td>249 kr</td></tr>
-          <tr><td>Hörlurar</td><td>par</td><td>799 kr</td></tr>
-          <tr><td>Tangentbord</td><td>st</td><td>599 kr</td></tr>
+          <tr>
+            <td>Skärmfilter</td>
+            <td>st</td>
+            <td>249 kr</td>
+          </tr>
+          <tr>
+            <td>Hörlurar</td>
+            <td>par</td>
+            <td>799 kr</td>
+          </tr>
+          <tr>
+            <td>Tangentbord</td>
+            <td>st</td>
+            <td>599 kr</td>
+          </tr>
         </tbody>
       </table>
     </section>
@@ -193,4 +285,5 @@
   <!-- Din widget -->
   <script async src="./allowlist.loader.js"></script>
 </body>
+
 </html>
