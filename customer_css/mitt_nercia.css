@@ -1,0 +1,24 @@
+/* ============================
+   Mitt Nercia (kund-CSS)
+   ============================ */
+
+/* Ladda fonten här (ingen flagga i HTML krävs) */
+@import url("https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&display=swap");
+
+/* Kundens lager ligger över basen pga @layer-ordningen i base.css */
+@layer rw-customer {
+
+  /* 1) Tokens (slår igenom i hela widgeten) */
+  :root {
+    --rw-font-family: "Ubuntu", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  }
+
+  .rw-tool .rw-label {
+    font-family: 'Ubuntu', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  }
+
+  .rw-btn {
+    font-family: 'Ubuntu', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+}

@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <title>ReaderWidget – Testyta</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height: 1.6; margin: 0; }
+    header, main, footer { max-width: 900px; margin: 0 auto; padding: 1.25rem; }
+    header { padding-top: 2rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+    figure { margin: 0; }
+    figcaption { font-size: .9rem; color: #555; }
+    .card { border: 1px solid #e8e8e8; border-radius: 12px; padding: 1rem; background: #fff; }
+    .muted { color: #666; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+    pre { background: #f7f7f7; border-radius: 8px; padding: 1rem; overflow: auto; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: .5rem .6rem; text-align: left; }
+    th { background: #f3f3f3; }
+    .pill { display: inline-block; padding: .2rem .6rem; border-radius: 999px; background: #eef6ff; color: #0b67c2; font-size: .85rem; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+    .spacer { height: 32px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <p class="pill">Demo</p>
+    <h1>Hej och välkommen!</h1>
+    <p>
+      Markera text och testa <strong>Läs</strong>, <strong>Undertexter</strong>, <strong>Radfokus</strong> och övriga verktyg i widgeten.
+      Om något inte fungerar: <a href="#" aria-label="Kontakt – öppnar e-postklient">Kontakta Nercia</a>.
+    </p>
+    <div class="spacer"></div>
+    <button onclick="ReaderWidget.open()">Öppna läsverktyget</button>
+    <span class="muted"> (Alt + L för att pausa/uppta, Alt + X för att stänga)</span>
+  </header>
+
+  <main>
+    <section aria-labelledby="intro-title">
+      <h2 id="intro-title">Exempeltexter</h2>
+      <p>
+        Den här sidan innehåller olika komponenter för att prova uppläsning: listor, tabeller, formulär, citat, bilder,
+        kod och flerspråkiga stycken. Du kan växla språk i TTS och se hur undertexter och markering följer.
+      </p>
+
+      <h3>Punktlista</h3>
+      <ul>
+        <li>Tillgänglighet på webben gynnar alla användare.</li>
+        <li>Kontraster och läsbar typografi är avgörande.</li>
+        <li>Klarspråk och <em>logisk struktur</em> hjälper skärmläsare.</li>
+      </ul>
+
+      <h3>Numrerad lista</h3>
+      <ol>
+        <li>Öppna widgeten.</li>
+        <li>Slå på <strong>Undertexter</strong>.</li>
+        <li>Starta <strong>Läs</strong> och följ ordmarkeringen.</li>
+      </ol>
+
+      <h3>Citat</h3>
+      <blockquote cite="https://www.w3.org/WAI/">
+        “Web accessibility is essential for people with disabilities and useful for all.”
+      </blockquote>
+
+      <h3>Kort kodexempel</h3>
+      <pre><code>function hello(name){ return `Hej, ${name}!`; }</code></pre>
+    </section>
+
+    <hr />
+
+    <section aria-labelledby="media-title">
+      <h2 id="media-title">Bilder (med alt-texter)</h2>
+      <div class="grid">
+        <figure class="card">
+          <img
+            alt="En stiliserad sol över ett berg (ikon)"
+            width="400" height="240"
+            src="data:image/svg+xml;utf8,
+              <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 480'>
+                <defs>
+                  <linearGradient id='g' x1='0' y1='0' x2='0' y2='1'>
+                    <stop offset='0' stop-color='%23a8d8ff'/>
+                    <stop offset='1' stop-color='%23ffffff'/>
+                  </linearGradient>
+                </defs>
+                <rect width='800' height='480' fill='url(%23g)'/>
+                <circle cx='620' cy='120' r='60' fill='%23ffd35a'/>
+                <path d='M0,420 L220,300 L380,360 L520,260 L800,420 L800,480 L0,480 Z' fill='%2399c57a'/>
+              </svg>" />
+          <figcaption>SVG-bild 1 — dekorativ men med beskrivande alt-text.</figcaption>
+        </figure>
+
+        <figure class="card">
+          <img
+            alt="En mörk nattlig himmel med måne och stadssilhuett (ikon)"
+            width="400" height="240"
+            src="data:image/svg+xml;utf8,
+              <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 480'>
+                <rect width='800' height='480' fill='%230b1b3a'/>
+                <circle cx='120' cy='110' r='48' fill='%fff' fill-opacity='.9'/>
+                <rect x='80' y='280' width='640' height='160' fill='%23172856'/>
+                <g fill='%2321436e'>
+                  <rect x='100' y='260' width='60' height='180'/>
+                  <rect x='190' y='240' width='50' height='200'/>
+                  <rect x='260' y='270' width='70' height='170'/>
+                  <rect x='350' y='230' width='80' height='210'/>
+                  <rect x='450' y='255' width='55' height='185'/>
+                  <rect x='520' y='240' width='65' height='200'/>
+                  <rect x='600' y='265' width='50' height='175'/>
+                </g>
+              </svg>" />
+          <figcaption>SVG-bild 2 — test för uppläsning av bildbeskrivningar.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <hr />
+
+    <section aria-labelledby="table-title">
+      <h2 id="table-title">Tabell</h2>
+      <p class="muted">Bra för att testa cell-för-cell kontra radvis uppläsning.</p>
+      <table>
+        <thead>
+          <tr><th>Produkt</th><th>Enhet</th><th>Pris</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Skärmfilter</td><td>st</td><td>249 kr</td></tr>
+          <tr><td>Hörlurar</td><td>par</td><td>799 kr</td></tr>
+          <tr><td>Tangentbord</td><td>st</td><td>599 kr</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <hr />
+
+    <section aria-labelledby="form-title">
+      <h2 id="form-title">Formulär</h2>
+      <form action="#" class="card" onsubmit="event.preventDefault(); alert('Skickat! (demo)')">
+        <label for="name">Namn</label><br />
+        <input id="name" name="name" type="text" placeholder="Ange ditt namn" /><br /><br />
+
+        <label for="lang">Språk</label><br />
+        <select id="lang" name="lang">
+          <option value="sv">Svenska</option>
+          <option value="en">English</option>
+          <option value="es">Español</option>
+        </select><br /><br />
+
+        <fieldset>
+          <legend>Intressen</legend>
+          <label><input type="checkbox" name="int" value="cycle" /> Cykling</label>
+          <label><input type="checkbox" name="int" value="ski" /> Skidåkning</label>
+          <label><input type="checkbox" name="int" value="read" /> Läsning</label>
+        </fieldset><br />
+
+        <button type="submit">Skicka</button>
+      </form>
+    </section>
+
+    <hr />
+
+    <section aria-labelledby="multi-title">
+      <h2 id="multi-title">Flerspråkigt innehåll</h2>
+      <p lang="en">This paragraph is in English to test language switching in your TTS setup.</p>
+      <p lang="sv">Det här stycket är på svenska för att testa hur pauser och meningsgränser hanteras.</p>
+      <p lang="es">Este párrafo está en español para comprobar la lectura con distintos idiomas.</p>
+    </section>
+
+    <hr />
+
+    <section aria-labelledby="skip-title">
+      <h2 id="skip-title">Element som ska hoppas över</h2>
+      <p>
+        Följande ikoner innehåller text men markeras som <code>aria-hidden="true"</code> och borde inte läsas:
+        <span class="sr-only">(ikoner dolda för skärmläsning)</span>
+      </p>
+      <div aria-hidden="true">
+        <span class="material-symbols-outlined">visibility</span>
+        <span class="material-symbols-outlined">settings</span>
+        <span class="material-symbols-outlined">audio_description</span>
+      </div>
+    </section>
+
+    <div class="spacer"></div>
+  </main>
+
+  <footer>
+    <p class="muted">© 2025 Nercia – Testyta för ReaderWidget.</p>
+  </footer>
+
+  <!-- Din widget -->
+  <script async src="./allowlist.loader.js"></script>
+</body>
+</html>
