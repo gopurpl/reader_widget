@@ -61,9 +61,29 @@
     color: #fff !important;
   }
 
+  html.rw-contrast body {
+    filter: invert(1) hue-rotate(180deg);
+  }
+
+  html.rw-contrast body img,
+  html.rw-contrast body picture,
+  html.rw-contrast body video,
+  html.rw-contrast body iframe,
+  html.rw-contrast body canvas {
+    filter: invert(1) hue-rotate(180deg);
+  }
+
   html.rw-contrast a {
     color: #9ecbff !important;
     text-decoration: underline;
+  }
+
+  html.rw-contrast .rw-panel,
+  html.rw-contrast .rw-spotlight,
+  html.rw-contrast .rw-ribbon,
+  html.rw-contrast #rw-selwrap,
+  html.rw-contrast .rw-hovercard {
+    filter: invert(1) hue-rotate(180deg);
   }
 
   /* ---------- Panel ---------- */
