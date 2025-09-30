@@ -237,12 +237,11 @@
     min-width: 0;
     max-width: 100%;
     text-transform: uppercase;
-    font-size: 14px;
+    font-size: 12px;
   }
 
   /* Rows inside settings */
   .rw-row {
-    display: grid;
     grid-template-columns: 1fr auto;
     gap: 10px;
     align-items: center;

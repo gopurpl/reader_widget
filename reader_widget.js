@@ -25,10 +25,6 @@
     /* ==========================
        Locale & Translations
     ========================== */
-    const pageLangRaw = (document.documentElement && document.documentElement.getAttribute('lang'))
-        || (navigator.language || navigator.userLanguage || '')
-        || '';
-
     function normalizeLocale(raw) {
         const val = (raw || '').trim().toLowerCase();
         if (!val) return 'sv';
@@ -36,8 +32,21 @@
         if (val.startsWith('en') || val.startsWith('eng')) return 'en';
         return 'sv';
     }
+    function readDocumentLang() {
+        if (document && document.documentElement) {
+            const langAttr = document.documentElement.getAttribute('lang');
+            if (langAttr) return langAttr;
+        }
+        return '';
+    }
 
-    const LOCALE = normalizeLocale(pageLangRaw);
+    function detectInitialLocale() {
+        const docLang = readDocumentLang();
+        const navLang = navigator.language || navigator.userLanguage || '';
+        return normalizeLocale(docLang || navLang);
+    }
+
+    let currentLocale = detectInitialLocale();
     const FALLBACK_LOCALE = 'sv';
 
     const TEXT = {
@@ -116,7 +125,7 @@
     };
 
     function t(key) {
-        const localeTable = TEXT[LOCALE] || {};
+        const localeTable = TEXT[currentLocale] || {};
         if (Object.prototype.hasOwnProperty.call(localeTable, key)) return localeTable[key];
         const fallbackTable = TEXT[FALLBACK_LOCALE] || {};
         if (Object.prototype.hasOwnProperty.call(fallbackTable, key)) return fallbackTable[key];
@@ -307,7 +316,7 @@
        State
     ========================== */
     const prefs = Object.assign({
-        rate: 1.0, voiceName: '', voiceLang: LOCALE, zoom: 1,
+        rate: 1.0, voiceName: '', voiceLang: currentLocale, zoom: 1,
         contrast: false, dyslexia: false,
         subs: false,
         theme: { bg: '#ffffff', fg: '#111111', accent: '#1b73e8', underline: true },
@@ -317,7 +326,7 @@
         hoverRate: 1.0
     }, loadPrefs());
 
-    if (!prefs.voiceLang) prefs.voiceLang = LOCALE;
+    if (!prefs.voiceLang) prefs.voiceLang = currentLocale;
 
     let reading = false, spotlightOn = false, hoverOn = false;
     let voices = [];
@@ -730,7 +739,7 @@
             return;
         }
 
-        const desiredPrefix = LOCALE;
+        const desiredPrefix = currentLocale;
         const fallbackPrefix = desiredPrefix === 'sv' ? 'en' : 'sv';
 
         const main = all.filter(v => (v.lang || '').toLowerCase().startsWith(desiredPrefix));
@@ -741,7 +750,7 @@
 
         let chosen = voices.find(v => v.name === prefs.voiceName) || null;
         const selectedLocale = normalizeLocale(chosen && chosen.lang);
-        if (!chosen || selectedLocale !== LOCALE) {
+        if (!chosen || selectedLocale !== currentLocale) {
             chosen = main[0] || voices[0] || null;
         }
 
@@ -756,6 +765,45 @@
             }
         }
     }
+
+    function setActiveLocale(newLocale) {
+        const normalized = normalizeLocale(newLocale);
+        if (normalized === currentLocale) return;
+
+        const previous = currentLocale;
+        currentLocale = normalized;
+
+        if (!prefs.voiceLang || normalizeLocale(prefs.voiceLang) === previous) {
+            prefs.voiceLang = currentLocale;
+            savePrefs(prefs);
+        }
+
+        updateWidgetLocaleText();
+
+        if (window.speechSynthesis) {
+            refreshVoices();
+        }
+    }
+
+    if (typeof MutationObserver === 'function') {
+        const htmlEl = document.documentElement;
+        if (htmlEl) {
+            const langObserver = new MutationObserver((mutations) => {
+                for (const m of mutations) {
+                    if (m.type === 'attributes' && m.attributeName === 'lang') {
+                        setActiveLocale(readDocumentLang());
+                        break;
+                    }
+                }
+            });
+            langObserver.observe(htmlEl, { attributes: true, attributeFilter: ['lang'] });
+        }
+    }
+
+    window.addEventListener('languagechange', () => {
+        const navLang = navigator.language || navigator.userLanguage || '';
+        setActiveLocale(navLang);
+    });
 
     function splitSentences(str) {
         const s = (str || '').replace(/\r\n/g, '\n');
@@ -1438,6 +1486,46 @@
         markWidgetActivity();
     }
 
+    function updateWidgetLocaleText() {
+        if (!panel) return;
+
+        const title = panel.querySelector('.rw-title span:last-child');
+        if (title) title.textContent = t('widgetTitle');
+
+        const sub = panel.querySelector('.rw-subhead');
+        if (sub) sub.textContent = t('widgetSubhead');
+
+        const closeBtn = panel.querySelector('.rw-footer button');
+        if (closeBtn) closeBtn.textContent = t('close');
+
+        const toolLabels = [
+            ['read', 'readLabel'],
+            ['contrast', 'contrastLabel'],
+            ['spotlight', 'spotlightLabel'],
+            ['dys', 'dyslexiaLabel'],
+            ['hover', 'hoverLabel'],
+            ['subs', 'subsLabel']
+        ];
+
+        toolLabels.forEach(([id, key]) => {
+            const btn = document.getElementById(`${NS}-tool-${id}`);
+            if (!btn) return;
+            const labelEl = btn.querySelector('.rw-label');
+            if (labelEl) labelEl.textContent = t(key);
+        });
+
+        updatePlayButton();
+        disableHoverOnTouch();
+
+        if (settingsEl && settingsEl.classList.contains('active')) {
+            const section = settingsEl.dataset.rwSection;
+            if (section) {
+                const hostBtn = document.getElementById(`${NS}-tool-${section}`);
+                renderSettings(section, hostBtn || null);
+            }
+        }
+    }
+
     function toolButtonRow() {
         // liten hjälpare som bygger en cell med knapp inuti
         const cell = (btn) => h('div', { class: 'rw-toolcell' }, btn);
@@ -1753,7 +1841,8 @@
             if (e) markKeyboardActivation(e); // sätter lastActivationByKeyboard
             togglePanel(true, e);
         },
-        close() { togglePanel(false); }
+        close() { togglePanel(false); },
+        setLocale(lang) { setActiveLocale(lang); },
+        getLocale() { return currentLocale; }
     };
 })();
-
