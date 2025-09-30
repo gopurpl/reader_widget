@@ -8,13 +8,17 @@
 /* Kundens overrides ligger efter basen och slår igenom */
 /* 1) Tokens (slår igenom i hela widgeten) */
 :root {
-  --rw-font-family: "Ubuntu", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  --rw-font-family: 'Ubuntu', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
 
 .rw-tool .rw-label {
-  font-family: 'Ubuntu', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-family: 'Ubuntu', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif !important;
 }
 
 .rw-btn {
-  font-family: 'Ubuntu', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-family: 'Ubuntu', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif !important;
+}
+
+.rw-panel {
+  background-color: #fffefd;
 }
