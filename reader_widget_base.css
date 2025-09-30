@@ -2,9 +2,6 @@
    Reader Widget (clean build) — responsive + touch aware
    ===================================================== */
 
-@layer rw-base, rw-customer;
-
-@layer rw-base {
 
   /* ---------- Design tokens (overridden by JS theme) ---------- */
   :root {
@@ -530,4 +527,3 @@
       letter-spacing: .02em;
     }
   }
-}
