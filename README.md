@@ -139,6 +139,9 @@ Minifiera `reader_widget.js` → `reader_widget.min.js` med Terser:
 ```bash
 npx terser reader_widget.js -o reader_widget.min.js
 ```
+```bash
+npx terser allowlist.loader.js -o allowlist.loader.min.js
+```
 
 ### CSS
 
