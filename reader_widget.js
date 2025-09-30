@@ -453,12 +453,35 @@
             'P', 'LI', 'UL', 'OL', 'DL', 'DT', 'DD',
             'BLOCKQUOTE', 'PRE', 'FIGCAPTION',
             'TABLE', 'THEAD', 'TBODY', 'TFOOT', 'TR', 'TD', 'TH',
-            'MAIN', 'ARTICLE', 'SECTION', 'ASIDE', 'HEADER', 'FOOTER', 'NAV', 'ADDRESS',
+            'MAIN', 'ARTICLE', 'SECTION', 'ASIDE', 'HEADER', 'FOOTER', 'NAV', 'ADDRESS', 'DIV',
             'FIELDSET', 'LEGEND', 'FORM', 'SUMMARY', 'DETAILS',
             // även "kontroller" vill vi separera tydligt:
             'BUTTON', 'LABEL', 'INPUT', 'SELECT', 'TEXTAREA',
             'BR', 'HR'
         ]);
+
+        const BLOCK_STYLE_CACHE = (typeof WeakMap === 'function') ? new WeakMap() : null;
+
+        function isBlockish(el) {
+            if (!el || el === document.body) return false;
+            if (BLOCK_TAGS.has(el.tagName)) return true;
+            if (BLOCK_STYLE_CACHE && BLOCK_STYLE_CACHE.has(el)) return BLOCK_STYLE_CACHE.get(el);
+
+            let display = '';
+            const win = (typeof window !== 'undefined') ? window : null;
+            if (win && typeof win.getComputedStyle === 'function') {
+                try {
+                    const style = win.getComputedStyle(el);
+                    display = style ? (style.display || '') : '';
+                } catch (err) {
+                    display = '';
+                }
+            }
+
+            const blocky = !!display && display !== 'inline' && display !== 'contents';
+            if (BLOCK_STYLE_CACHE) BLOCK_STYLE_CACHE.set(el, blocky);
+            return blocky;
+        }
 
         const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'IFRAME', 'SVG', 'AUDIO', 'VIDEO', 'CANVAS']);
 
@@ -466,11 +489,12 @@
             while (el && el !== document.body) {
                 if (!includeWidgetFlag && el.classList && [...el.classList].some(c => c.startsWith(NS + '-'))) return null;
 
-                if (BLOCK_TAGS.has(el.tagName)) return el;
-
                 if (includeWidgetFlag && el.classList && (el.classList.contains('rw-body') || el.classList.contains('rw-settings'))) {
                     return el;
                 }
+
+                if (isBlockish(el)) return el;
+
                 el = el.parentElement;
             }
             return document.body;
@@ -1334,14 +1358,14 @@
         if (which === 'spotlight') {
             addRow(t('settingsMaskOpacity'),
                 h('input', {
-                    class: 'rw-slider', type: 'range', min: '0', max: '0.95', step: '0.05', value: String(prefs.mask.opacity),
+                    class: 'rw-slider', type: 'range', min: '0.2', max: '0.9', step: '0.05', value: String(prefs.mask.opacity),
                     oninput: e => { prefs.mask.opacity = parseFloat(e.target.value); savePrefs(prefs); applyTheme(); }
                 })
             );
             addRow(t('settingsMaskHeight'),
                 h('input', {
                     class: 'rw-slider', type: 'range',
-                    min: '60', max: '400', step: '4',
+                    min: '20', max: '400', step: '4',
                     value: String(prefs.mask.height),
                     oninput: e => {
                         prefs.mask.height = parseInt(e.target.value, 10);
