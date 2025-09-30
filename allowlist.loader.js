@@ -13,7 +13,7 @@
     "localhost":      "mitt_nercia.css",
     "127.0.0.1":      "mitt_nercia.css",
     "mitt.nercia.se": "mitt_nercia.css",
-    "nercia.se/e-learning/":      "mitt_nercia.css",
+    "nercia.se":      "mitt_nercia.css",
   };
 
   function currentScriptBase() {
