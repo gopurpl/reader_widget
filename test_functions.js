@@ -133,10 +133,14 @@
     }
     function shouldStayExpanded(opts = {}) {
         const ignoreActive = !!opts.ignoreActive;
-        return panel.matches(':hover') ||
-            panel.contains(document.activeElement) ||
-            settingsEl.classList.contains('active') ||
-            (!ignoreActive && anyToolActive());
+        const ignoreFocus = !!opts.ignoreFocus;
+        const ignoreHover = !!opts.ignoreHover;
+
+        if (!ignoreHover && panel.matches(':hover')) return true;
+        if (!ignoreFocus && panel.contains(document.activeElement)) return true;
+        if (settingsEl && settingsEl.classList.contains('active')) return true;
+        if (!ignoreActive && anyToolActive()) return true;
+        return false;
     }
     function updateMiniState(opts = {}) {
         if (!panel) return;
@@ -229,47 +233,44 @@
 
     // Auto-minimize efter tangentbordsaktivering
     const AUTO_MIN_MS = 5000;
-    let lastActivationByKeyboard = false;
-    let inactivityTimer = null;
+    let autoMiniTimer = null;
 
     let selWrapEl = null;        // aktuell wrapper runt markerad text
     let lastRange = null;        // senaste icke-tomma markeringen (klonad)
 
-    function scheduleAutoMinimize() {
-        if (!panel) return;
-        clearTimeout(inactivityTimer);
-        inactivityTimer = setTimeout(() => {
-            const hasFocus = panel.contains(document.activeElement);
-            const hovering = panel.matches(':hover');
-            const settingsOpen = settingsEl && settingsEl.classList.contains('active');
-            if (!lastActivationByKeyboard) return; // bara efter kb-aktivering
-            if (hasFocus || hovering || settingsOpen) return;
+    function cancelAutoMinimize() {
+        if (autoMiniTimer) {
+            clearTimeout(autoMiniTimer);
+            autoMiniTimer = null;
+        }
+    }
+
+    function scheduleAutoMinimize(opts = {}) {
+        if (!panel || panel.style.display === 'none') return;
+        cancelAutoMinimize();
+        autoMiniTimer = setTimeout(() => {
+            autoMiniTimer = null;
+            if (!panel || panel.style.display === 'none') return;
+            if (typeof shouldStayExpanded === 'function' && shouldStayExpanded(opts)) {
+                scheduleAutoMinimize(opts);
+                return;
+            }
             panel.classList.add('rw-mini');
-            lastActivationByKeyboard = false;
         }, AUTO_MIN_MS);
     }
 
     function markWidgetActivity() {
-        if (!lastActivationByKeyboard) return;
-        clearTimeout(inactivityTimer);
-        inactivityTimer = setTimeout(() => {
-            const hasFocus = panel.contains(document.activeElement);
-            const hovering = panel.matches(':hover');
-            const settingsOpen = settingsEl && settingsEl.classList.contains('active');
-            if (!lastActivationByKeyboard) return;
-            if (hasFocus || hovering || settingsOpen) return;
-            panel.classList.add('rw-mini');
-            lastActivationByKeyboard = false;
-        }, AUTO_MIN_MS);
+        if (!panel || panel.style.display === 'none') return;
+        cancelAutoMinimize();
+        scheduleAutoMinimize();
     }
 
     function markKeyboardActivation(e) {
         const kb = !(e instanceof MouseEvent) || e.detail === 0;
-        lastActivationByKeyboard = !!kb;
-        if (lastActivationByKeyboard) {
-            panel.classList.remove('rw-mini');
-            scheduleAutoMinimize();
-        }
+        if (!panel) return;
+        if (kb) panel.classList.remove('rw-mini');
+        cancelAutoMinimize();
+        scheduleAutoMinimize();
     }
 
     // Hover-state
@@ -1433,11 +1434,16 @@
     function togglePanel(force) {
         const show = force != null ? force : panel.style.display === 'none';
         panel.style.display = show ? 'block' : 'none';
-        if (show) {
-            panel.classList.remove('rw-mini');
-            const firstBtn = panel.querySelector('.rw-tools .rw-tool');
-            if (firstBtn) firstBtn.focus();
+        if (!show) {
+            cancelAutoMinimize();
+            return;
         }
+
+        cancelAutoMinimize();
+        panel.classList.remove('rw-mini');
+        const firstBtn = panel.querySelector('.rw-tools .rw-tool');
+        if (firstBtn) firstBtn.focus();
+        scheduleAutoMinimize({ ignoreFocus: true, ignoreHover: true });
     }
 
     function deactivateAid(t) {

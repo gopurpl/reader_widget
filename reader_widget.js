@@ -238,10 +238,14 @@
     }
     function shouldStayExpanded(opts = {}) {
         const ignoreActive = !!opts.ignoreActive;
-        return panel.matches(':hover') ||
-            panel.contains(document.activeElement) ||
-            settingsEl.classList.contains('active') ||
-            (!ignoreActive && anyToolActive());
+        const ignoreFocus = !!opts.ignoreFocus;
+        const ignoreHover = !!opts.ignoreHover;
+
+        if (!ignoreHover && panel.matches(':hover')) return true;
+        if (!ignoreFocus && panel.contains(document.activeElement)) return true;
+        if (settingsEl.classList.contains('active')) return true;
+        if (!ignoreActive && anyToolActive()) return true;
+        return false;
     }
     function updateMiniState(opts = {}) {
         if (!panel) return;
@@ -335,49 +339,46 @@
 
     // Auto-minimize efter tangentbordsaktivering
     const AUTO_MIN_MS = 5000;
-    let lastActivationByKeyboard = false;
-    let inactivityTimer = null;
+    let autoMiniTimer = null;
 
     let selWrapEl = null;        // aktuell wrapper runt markerad text
     let lastRange = null;        // senaste icke-tomma markeringen (klonad)
 
 
 
-    function scheduleAutoMinimize() {
-        if (!panel) return;
-        clearTimeout(inactivityTimer);
-        inactivityTimer = setTimeout(() => {
-            const hasFocus = panel.contains(document.activeElement);
-            const hovering = panel.matches(':hover');
-            const settingsOpen = settingsEl && settingsEl.classList.contains('active');
-            if (!lastActivationByKeyboard) return; // bara efter kb-aktivering
-            if (hasFocus || hovering || settingsOpen) return;
+    function cancelAutoMinimize() {
+        if (autoMiniTimer) {
+            clearTimeout(autoMiniTimer);
+            autoMiniTimer = null;
+        }
+    }
+
+    function scheduleAutoMinimize(opts = {}) {
+        if (!panel || panel.style.display === 'none') return;
+        cancelAutoMinimize();
+        autoMiniTimer = setTimeout(() => {
+            autoMiniTimer = null;
+            if (!panel || panel.style.display === 'none') return;
+            if (shouldStayExpanded(opts)) {
+                scheduleAutoMinimize(opts);
+                return;
+            }
             panel.classList.add('rw-mini');
-            lastActivationByKeyboard = false;
         }, AUTO_MIN_MS);
     }
 
     function markWidgetActivity() {
-        if (!lastActivationByKeyboard) return;
-        clearTimeout(inactivityTimer);
-        inactivityTimer = setTimeout(() => {
-            const hasFocus = panel.contains(document.activeElement);
-            const hovering = panel.matches(':hover');
-            const settingsOpen = settingsEl && settingsEl.classList.contains('active');
-            if (!lastActivationByKeyboard) return;
-            if (hasFocus || hovering || settingsOpen) return;
-            panel.classList.add('rw-mini');
-            lastActivationByKeyboard = false;
-        }, AUTO_MIN_MS);
+        if (!panel || panel.style.display === 'none') return;
+        cancelAutoMinimize();
+        scheduleAutoMinimize();
     }
 
     function markKeyboardActivation(e) {
         const kb = !(e instanceof MouseEvent) || e.detail === 0;
-        lastActivationByKeyboard = !!kb;
-        if (lastActivationByKeyboard) {
-            panel.classList.remove('rw-mini');
-            scheduleAutoMinimize();
-        }
+        if (!panel) return;
+        if (kb) panel.classList.remove('rw-mini');
+        cancelAutoMinimize();
+        scheduleAutoMinimize();
     }
 
     // Expand/mini via hover på större skärmar (ingen touch)
@@ -394,12 +395,18 @@
 
         function onEnter() {
             // När du hovrar in: expandera
+            cancelAutoMinimize();
             panel.classList.remove('rw-mini');
         }
 
         function onLeave() {
             // När du hovrar ut: minimera (om panelen inte används)
-            if (shouldMini()) panel.classList.add('rw-mini');
+            if (shouldMini()) {
+                cancelAutoMinimize();
+                panel.classList.add('rw-mini');
+            } else {
+                scheduleAutoMinimize();
+            }
         }
 
         // Avregistrera ev. gamla lyssnare först (om du kör detta flera gånger)
@@ -1668,6 +1675,12 @@
         // 3) In i dokumentet
         document.body.appendChild(panel);
 
+        const onPanelActivity = () => {
+            if (panel && panel.style.display === 'block') markWidgetActivity();
+        };
+        panel.addEventListener('pointerdown', onPanelActivity);
+        panel.addEventListener('keydown', onPanelActivity, true);
+
         const HAS_HOVER = (typeof matchMedia === 'function') &&
             (matchMedia('(hover: hover)').matches || matchMedia('(any-hover: hover)').matches);
         const DESKTOP = (typeof matchMedia === 'function') &&
@@ -1802,10 +1815,8 @@
         removeFocusTrap = enableFocusTrap(panel);
 
         // 5) (valfritt) auto-minimera efter inaktivitet bara vid kb-aktivering
-        const openedByKeyboard = evt ? (!(evt instanceof MouseEvent) || evt.detail === 0) : lastActivationByKeyboard;
-        if (openedByKeyboard && typeof scheduleAutoMinimize === 'function') {
-            scheduleAutoMinimize();
-        }
+        cancelAutoMinimize();
+        scheduleAutoMinimize({ ignoreFocus: true, ignoreHover: true });
     }
 
     function deactivateAid(t) {
@@ -1843,7 +1854,7 @@
 
     window.ReaderWidget = {
         open(e) {
-            if (e) markKeyboardActivation(e); // sätter lastActivationByKeyboard
+            if (e) markKeyboardActivation(e); // håller panelen öppen en stund
             togglePanel(true, e);
         },
         close() { togglePanel(false); },
