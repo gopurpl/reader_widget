@@ -59,7 +59,6 @@
             close: 'Stäng',
             readLabel: 'LÄS',
             pauseLabel: 'PAUS',
-            contrastLabel: 'KONTRAST',
             spotlightLabel: 'RADFOKUS',
             dyslexiaLabel: 'DYSLEXI',
             hoverLabel: 'LÄS VID HOVRING',
@@ -95,7 +94,6 @@
             close: 'Close',
             readLabel: 'READ',
             pauseLabel: 'PAUSE',
-            contrastLabel: 'CONTRAST',
             spotlightLabel: 'LINE FOCUS',
             dyslexiaLabel: 'DYSLEXIA',
             hoverLabel: 'HOVER READ',
@@ -271,7 +269,6 @@
     const ICONS = {
         header: 'text_to_speech',
         read: 'auto_read_play',
-        contrast: 'contrast',
         spotlight: 'center_focus_weak',
         dys: 'text_fields',
         hover: 'highlight_mouse_cursor',
@@ -317,7 +314,7 @@
     ========================== */
     const prefs = Object.assign({
         rate: 1.0, voiceName: '', voiceLang: currentLocale, zoom: 1,
-        contrast: false, dyslexia: false,
+        dyslexia: false,
         subs: false,
         theme: { bg: '#ffffff', fg: '#111111', accent: '#1b73e8', underline: true },
         ribbon: { opacity: 1.0, fg: '#ffffff', bg: '#0b0b0b', font: 36 },
@@ -327,6 +324,10 @@
     }, loadPrefs());
 
     if (!prefs.voiceLang) prefs.voiceLang = currentLocale;
+    if (Object.prototype.hasOwnProperty.call(prefs, 'contrast')) {
+        delete prefs.contrast;
+        savePrefs(prefs);
+    }
 
     let reading = false, spotlightOn = false, hoverOn = false;
     let voices = [];
@@ -664,8 +665,8 @@
     function applyTheme() {
         const t = prefs.theme, r = prefs.ribbon, m = prefs.mask, d = prefs.dys;
 
-        const widgetBg = prefs.contrast ? '#151515' : t.bg;
-        const widgetFg = prefs.contrast ? '#f2f2f2' : t.fg;
+        const widgetBg = t.bg;
+        const widgetFg = t.fg;
 
         function luminance(hex) {
             const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
@@ -715,7 +716,6 @@
         if (panel) {
             panel.style.backgroundColor = widgetBg;
             panel.style.color = widgetFg;
-            panel.style.opacity = prefs.contrast ? '0.96' : '1';
         }
         if (spotlight) {
             spotlight.style.setProperty('--rw-spotlight-opacity', String(m.opacity));
@@ -819,7 +819,7 @@
 
     function showSubs() {
         if (!ribbonEl) {
-            ribbonEl = h('div', { class: `${NS}-ribbon rw-contrast-skip` }, h('p', null, ''));
+            ribbonEl = h('div', { class: `${NS}-ribbon` }, h('p', null, ''));
             document.body.appendChild(ribbonEl);
 
             const p = ribbonEl.querySelector('p');
@@ -1065,7 +1065,7 @@
         if (!('speechSynthesis' in window)) { alert(t('ttsNotSupported')); return; }
         if (!range) return;
 
-        let wrap = document.createElement('span'); wrap.id = `${NS}-selwrap`; wrap.className = 'rw-contrast-skip';
+        let wrap = document.createElement('span'); wrap.id = `${NS}-selwrap`;
         if (selWrapEl && selWrapEl.parentNode) { unwrap(selWrapEl); selWrapEl = null; }
         try {
             range.surroundContents(wrap);
@@ -1161,7 +1161,7 @@
     function setSpotlight(on) {
         spotlightOn = !!on;
         if (!spotlight) {
-            spotlight = h('div', { class: `${NS}-spotlight rw-contrast-skip`, 'aria-hidden': 'true', style: { display: 'none' } });
+            spotlight = h('div', { class: `${NS}-spotlight`, 'aria-hidden': 'true', style: { display: 'none' } });
             document.body.appendChild(spotlight);
         }
         spotlight.style.display = spotlightOn ? 'block' : 'none';
@@ -1248,17 +1248,8 @@
     });
 
     /* ==========================
-       Kontrast / Dyslexi / Undertexter
+       Dyslexi / Undertexter
     ========================== */
-    function setContrast(on) {
-        prefs.contrast = !!on; savePrefs(prefs);
-        document.documentElement.classList.toggle(`${NS}-contrast`, prefs.contrast);
-        const b = document.getElementById(`${NS}-tool-contrast`);
-        if (b) b.setAttribute('aria-pressed', prefs.contrast ? 'true' : 'false');
-        prefs.contrast ? pushAid('contrast') : removeAid('contrast');
-
-        applyTheme();
-    }
     function setDyslexia(on) {
         prefs.dyslexia = !!on; savePrefs(prefs);
         document.documentElement.classList.toggle(`${NS}-dyslexia`, prefs.dyslexia);
@@ -1500,7 +1491,6 @@
 
         const toolLabels = [
             ['read', 'readLabel'],
-            ['contrast', 'contrastLabel'],
             ['spotlight', 'spotlightLabel'],
             ['dys', 'dyslexiaLabel'],
             ['hover', 'hoverLabel'],
@@ -1536,13 +1526,6 @@
                 toggleRead();
                 renderSettings(reading ? 'read' : null, e.currentTarget);
             })),
-
-            cell(toolButton('contrast', 'contrast', t('contrastLabel'), (e) => {
-                markKeyboardActivation(e);
-                setContrast(!prefs.contrast);
-                renderSettings(null);
-            })),
-
             // RADFOKUS bara >768 px
             (!isSmallScreen() ? cell(toolButton('spotlight', 'spotlight', t('spotlightLabel'), (e) => {
                 markKeyboardActivation(e);
@@ -1624,7 +1607,7 @@
 
         // 2) Skapa panelens DOM
         panel = h('section', {
-            class: `${NS}-panel rw-contrast-skip`,
+            class: `${NS}-panel`,
             id: `${NS}-panel`,
             role: 'dialog',
             'aria-modal': 'false',
@@ -1678,7 +1661,6 @@
         }
 
         // 5) Initiera tillstånd/tema
-        document.documentElement.classList.toggle(`${NS}-contrast`, !!prefs.contrast);
         document.documentElement.classList.toggle(`${NS}-dyslexia`, !!prefs.dyslexia);
         applyTheme();
         updatePlayButton();
@@ -1806,7 +1788,6 @@
         switch (t) {
             case 'reading': stopReading(); break;
             case 'spotlight': setSpotlight(false); if (settingsEl) settingsEl.classList.remove('active'); break;
-            case 'contrast': setContrast(false); if (settingsEl) settingsEl.classList.remove('active'); break;
             case 'dyslexia': setDyslexia(false); if (settingsEl) settingsEl.classList.remove('active'); break;
             case 'hover': setHoverRead(false); if (settingsEl) settingsEl.classList.remove('active'); break;
             case 'subs': setSubs(false); if (settingsEl) settingsEl.classList.remove('active'); break;

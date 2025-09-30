@@ -164,7 +164,6 @@
     const ICONS = {
         header: 'text_to_speech',
         read: 'auto_read_play',
-        contrast: 'contrast',
         spotlight: 'center_focus_weak',
         dys: 'text_fields',
         hover: 'highlight_mouse_cursor',
@@ -210,7 +209,7 @@
     ========================== */
     const prefs = Object.assign({
         rate: 1.0, voiceName: '', zoom: 1,
-        contrast: false, dyslexia: false,
+        dyslexia: false,
         subs: false,
         theme: { bg: '#ffffff', fg: '#111111', accent: '#1b73e8', underline: true },
         ribbon: { opacity: 1.0, fg: '#ffffff', bg: '#0b0b0b', font: 36 },
@@ -218,6 +217,11 @@
         dys: { scale: 1, line: 1.6, letter: 0.02, word: 0.08 },
         hoverRate: 1.0
     }, loadPrefs());
+
+    if (Object.prototype.hasOwnProperty.call(prefs, 'contrast')) {
+        delete prefs.contrast;
+        savePrefs(prefs);
+    }
 
     let reading = false, spotlightOn = false, hoverOn = false;
     let voices = [];
@@ -518,8 +522,8 @@
     function applyTheme() {
         const t = prefs.theme, r = prefs.ribbon, m = prefs.mask, d = prefs.dys;
 
-        const widgetBg = prefs.contrast ? '#151515' : t.bg;
-        const widgetFg = prefs.contrast ? '#f2f2f2' : t.fg;
+        const widgetBg = t.bg;
+        const widgetFg = t.fg;
 
         function luminance(hex) {
             const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
@@ -569,7 +573,6 @@
         if (panel) {
             panel.style.backgroundColor = widgetBg;
             panel.style.color = widgetFg;
-            panel.style.opacity = prefs.contrast ? '0.96' : '1';
         }
         if (spotlight) {
             spotlight.style.setProperty('--rw-spotlight-opacity', String(m.opacity));
@@ -1036,17 +1039,8 @@
     });
 
     /* ==========================
-       Kontrast / Dyslexi / Undertexter
+       Dyslexi / Undertexter
     ========================== */
-    function setContrast(on) {
-        prefs.contrast = !!on; savePrefs(prefs);
-        document.documentElement.classList.toggle(`${NS}-contrast`, prefs.contrast);
-        const b = document.getElementById(`${NS}-tool-contrast`);
-        if (b) b.setAttribute('aria-pressed', prefs.contrast ? 'true' : 'false');
-        prefs.contrast ? pushAid('contrast') : removeAid('contrast');
-
-        applyTheme();
-    }
     function setDyslexia(on) {
         prefs.dyslexia = !!on; savePrefs(prefs);
         document.documentElement.classList.toggle(`${NS}-dyslexia`, prefs.dyslexia);
@@ -1264,13 +1258,6 @@
                 toggleRead();
                 renderSettings(reading ? 'read' : null, e.currentTarget);
             })),
-
-            cell(toolButton('contrast', 'contrast', 'KONTRAST', (e) => {
-                markKeyboardActivation(e);
-                setContrast(!prefs.contrast);
-                renderSettings(null);
-            })),
-
             // RADFOKUS bara >768 px
             (!isSmallScreen() ? cell(toolButton('spotlight', 'spotlight', 'RADFOKUS', (e) => {
                 markKeyboardActivation(e);
@@ -1399,7 +1386,6 @@
         }
 
         // Initiera tillstånd/tema
-        document.documentElement.classList.toggle(`${NS}-contrast`, !!prefs.contrast);
         document.documentElement.classList.toggle(`${NS}-dyslexia`, !!prefs.dyslexia);
         applyTheme();
         updatePlayButton();
@@ -1434,7 +1420,6 @@
         switch (t) {
             case 'reading': stopReading(); break;
             case 'spotlight': setSpotlight(false); if (settingsEl) settingsEl.classList.remove('active'); break;
-            case 'contrast': setContrast(false); if (settingsEl) settingsEl.classList.remove('active'); break;
             case 'dyslexia': setDyslexia(false); if (settingsEl) settingsEl.classList.remove('active'); break;
             case 'hover': setHoverRead(false); if (settingsEl) settingsEl.classList.remove('active'); break;
             case 'subs': setSubs(false); if (settingsEl) settingsEl.classList.remove('active'); break;

@@ -174,7 +174,7 @@ ReaderWidget.close()
 * Uppläsning av markerad text eller hela sidan
 * Röstval (svenska/engelska)
 * Justerbar hastighet och zoom
-* Högkontrast- och dyslexiläge
+* Dyslexiläge
 * Radfokus/spotlight
 * Tangentbordsgenvägar
 
