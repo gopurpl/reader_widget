@@ -1489,7 +1489,7 @@
     function updateWidgetLocaleText() {
         if (!panel) return;
 
-        const title = panel.querySelector('.rw-title span:last-child');
+        const title = panel.querySelector('.rw-title .rw-title-label');
         if (title) title.textContent = t('widgetTitle');
 
         const sub = panel.querySelector('.rw-subhead');
@@ -1634,7 +1634,7 @@
             h('div', { class: 'rw-header' },
                 h('div', { class: 'rw-title' },
                     iconEl('header'),
-                    h('span', null, t('widgetTitle'))
+                    h('span', { class: 'rw-title-label' }, t('widgetTitle'))
                 ),
                 // Subhead: renderas ALLTID – vi styr visning med CSS + aria
                 h('span', { class: 'rw-subhead', 'aria-hidden': isSmallScreen() ? 'true' : 'false' }, t('widgetSubhead'))

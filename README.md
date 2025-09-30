@@ -153,6 +153,22 @@ npx cssnano reader_widget_base.css reader_widget_base.min.css
 
 ---
 
+### Devtools
+
+```bash
+const s = document.createElement('script');
+s.src = 'https://gopurpl.github.io/reader_widget/allowlist.loader.min.js?' + Date.now();
+s.async = true;
+document.head.appendChild(s);
+```
+
+```bash
+ReaderWidget.open()
+```
+```bash
+ReaderWidget.close()
+```
+
 ## Features i widgeten
 
 * Uppläsning av markerad text eller hela sidan
