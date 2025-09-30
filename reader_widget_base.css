@@ -61,29 +61,46 @@
     color: #fff !important;
   }
 
-  html.rw-contrast body {
-    filter: invert(1) hue-rotate(180deg);
+  html.rw-contrast body *,
+  html.rw-contrast body *::before,
+  html.rw-contrast body *::after {
+    color: #fff !important;
+    background-color: transparent !important;
+    border-color: rgba(255, 255, 255, 0.6) !important;
+    box-shadow: none !important;
   }
 
-  html.rw-contrast body img,
-  html.rw-contrast body picture,
-  html.rw-contrast body video,
-  html.rw-contrast body iframe,
-  html.rw-contrast body canvas {
-    filter: invert(1) hue-rotate(180deg);
+  html.rw-contrast body a {
+    color: #4fa3ff !important;
+    text-decoration: underline !important;
   }
 
-  html.rw-contrast a {
-    color: #9ecbff !important;
-    text-decoration: underline;
+  html.rw-contrast body button,
+  html.rw-contrast body [role="button"],
+  html.rw-contrast body input,
+  html.rw-contrast body select,
+  html.rw-contrast body textarea {
+    background-color: #111 !important;
+    color: #fff !important;
+    border-color: #fff !important;
   }
 
-  html.rw-contrast .rw-panel,
-  html.rw-contrast .rw-spotlight,
-  html.rw-contrast .rw-ribbon,
-  html.rw-contrast #rw-selwrap,
-  html.rw-contrast .rw-hovercard {
-    filter: invert(1) hue-rotate(180deg);
+  html.rw-contrast body *:focus {
+    outline: 2px solid #ffd60a !important;
+    outline-offset: 2px !important;
+  }
+
+  html.rw-contrast body .rw-contrast-skip,
+  html.rw-contrast body .rw-contrast-skip *,
+  html.rw-contrast body .rw-contrast-skip::before,
+  html.rw-contrast body .rw-contrast-skip::after,
+  html.rw-contrast body .rw-contrast-skip *::before,
+  html.rw-contrast body .rw-contrast-skip *::after {
+    color: revert !important;
+    background: revert !important;
+    border-color: revert !important;
+    box-shadow: revert !important;
+    filter: none !important;
   }
 
   /* ---------- Panel ---------- */

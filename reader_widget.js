@@ -819,7 +819,7 @@
 
     function showSubs() {
         if (!ribbonEl) {
-            ribbonEl = h('div', { class: `${NS}-ribbon` }, h('p', null, ''));
+            ribbonEl = h('div', { class: `${NS}-ribbon rw-contrast-skip` }, h('p', null, ''));
             document.body.appendChild(ribbonEl);
 
             const p = ribbonEl.querySelector('p');
@@ -1065,7 +1065,7 @@
         if (!('speechSynthesis' in window)) { alert(t('ttsNotSupported')); return; }
         if (!range) return;
 
-        let wrap = document.createElement('span'); wrap.id = `${NS}-selwrap`;
+        let wrap = document.createElement('span'); wrap.id = `${NS}-selwrap`; wrap.className = 'rw-contrast-skip';
         if (selWrapEl && selWrapEl.parentNode) { unwrap(selWrapEl); selWrapEl = null; }
         try {
             range.surroundContents(wrap);
@@ -1161,7 +1161,7 @@
     function setSpotlight(on) {
         spotlightOn = !!on;
         if (!spotlight) {
-            spotlight = h('div', { class: `${NS}-spotlight`, 'aria-hidden': 'true', style: { display: 'none' } });
+            spotlight = h('div', { class: `${NS}-spotlight rw-contrast-skip`, 'aria-hidden': 'true', style: { display: 'none' } });
             document.body.appendChild(spotlight);
         }
         spotlight.style.display = spotlightOn ? 'block' : 'none';
@@ -1624,7 +1624,7 @@
 
         // 2) Skapa panelens DOM
         panel = h('section', {
-            class: `${NS}-panel`,
+            class: `${NS}-panel rw-contrast-skip`,
             id: `${NS}-panel`,
             role: 'dialog',
             'aria-modal': 'false',
