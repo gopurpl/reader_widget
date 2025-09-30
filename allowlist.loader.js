@@ -2,11 +2,18 @@
   var VERSION = "0.1.3";
   var CUSTOMER_DIR = "customer_css/";
 
-  var ALLOW = ["localhost","127.0.0.1","[::1]","mitt.nercia.se"];
+  var ALLOW = [
+    "localhost",
+    "127.0.0.1",
+    "[::1]",
+    "mitt.nercia.se",
+    "nercia.se",
+  ];
   var CUSTOMER_CSS = {
     "localhost":      "mitt_nercia.css",
     "127.0.0.1":      "mitt_nercia.css",
-    "mitt.nercia.se": "mitt_nercia.css"
+    "mitt.nercia.se": "mitt_nercia.css",
+    "nercia.se":      "mitt_nercia.css",
   };
 
   function currentScriptBase() {
