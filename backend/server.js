@@ -1,4 +1,6 @@
 const http = require('http');
+const https = require('https');
+const fs = require('fs');
 const { URL } = require('url');
 const { recordEvent, getSummary, ensureDir } = require('./storage');
 
@@ -8,6 +10,32 @@ const PORT = process.env.PORT || 8787;
 const HOST = process.env.HOST || '0.0.0.0';
 const SHARED_SECRET = process.env.RW_SHARED_SECRET || null;
 const MAX_BODY_SIZE = 256 * 1024; // 256 kB should be plenty
+const TLS_CERT_PATH = process.env.RW_TLS_CERT || '';
+const TLS_KEY_PATH = process.env.RW_TLS_KEY || '';
+const TLS_CA_PATH = process.env.RW_TLS_CA || '';
+const ENABLE_HTTP_REDIRECT = process.env.RW_ENABLE_HTTP_REDIRECT === 'true';
+const HTTP_REDIRECT_PORT = process.env.RW_HTTP_REDIRECT_PORT || 8080;
+
+function hasTlsConfig() {
+  return Boolean(TLS_CERT_PATH && TLS_KEY_PATH);
+}
+
+function loadTlsConfig() {
+  if (!hasTlsConfig()) return null;
+  try {
+    const options = {
+      cert: fs.readFileSync(TLS_CERT_PATH),
+      key: fs.readFileSync(TLS_KEY_PATH)
+    };
+    if (TLS_CA_PATH) {
+      options.ca = fs.readFileSync(TLS_CA_PATH);
+    }
+    return options;
+  } catch (err) {
+    console.error('[analytics] Kunde inte läsa TLS-certifikat:', err.message);
+    return null;
+  }
+}
 
 function send(res, statusCode, body, extraHeaders) {
   const data = body != null ? JSON.stringify(body) : '';
@@ -68,8 +96,9 @@ function validateEvent(payload) {
   return null;
 }
 
-const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
+const requestListener = async (req, res) => {
+  const protocol = req.socket && req.socket.encrypted ? 'https' : 'http';
+  const url = new URL(req.url, `${protocol}://${req.headers.host}`);
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
@@ -115,15 +144,43 @@ const server = http.createServer(async (req, res) => {
   }
 
   send(res, 404, { error: 'Not found' });
-});
+};
+
+function createServer() {
+  const tlsOptions = loadTlsConfig();
+  if (tlsOptions) {
+    return https.createServer(tlsOptions, requestListener);
+  }
+  return http.createServer(requestListener);
+}
+
+const server = createServer();
+
+function startHttpRedirectServer() {
+  if (!hasTlsConfig() || !ENABLE_HTTP_REDIRECT) return;
+  const redirectServer = http.createServer((req, res) => {
+    const host = req.headers.host ? req.headers.host.split(':')[0] : 'localhost';
+    const location = `https://${host}:${PORT}${req.url}`;
+    res.writeHead(301, { Location: location });
+    res.end();
+  });
+  redirectServer.listen(HTTP_REDIRECT_PORT, HOST, () => {
+    console.log(`[analytics] HTTP redirect server på http://${HOST}:${HTTP_REDIRECT_PORT} → https://${HOST}:${PORT}`);
+  });
+}
 
 if (require.main === module) {
   server.listen(PORT, HOST, () => {
-    console.log(`[analytics] listening on http://${HOST}:${PORT}`);
+    const protocol = hasTlsConfig() ? 'https' : 'http';
+    console.log(`[analytics] listening on ${protocol}://${HOST}:${PORT}`);
+    if (hasTlsConfig()) {
+      console.log('[analytics] TLS aktiverat.');
+    }
     if (SHARED_SECRET) {
       console.log('[analytics] shared secret protection ENABLED');
     }
   });
+  startHttpRedirectServer();
 }
 
-module.exports = { server };
+module.exports = { server, createServer, requestListener };

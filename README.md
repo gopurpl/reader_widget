@@ -192,6 +192,8 @@ Resultatet sparas i `backend/data/usage.json` (git-ignoreras).
 2. Sätt miljövariabler:
    - `PORT` (valfritt, standard 8787)
    - `RW_SHARED_SECRET` (valfritt men starkt rekommenderat för att hindra obehöriga POST:ar)
+   - `RW_TLS_CERT` och `RW_TLS_KEY` om du vill svara över HTTPS (valfritt `RW_TLS_CA` för kedjecertifikat)
+   - `RW_ENABLE_HTTP_REDIRECT=true` (valfritt) startar en HTTP-server som gör 301→HTTPS på `RW_HTTP_REDIRECT_PORT` (standard 8080)
 3. Rikta `ANALYTICS_ENDPOINT` i `allowlist.loader.js` mot din publika adress, t.ex.
    `https://stats.din-domän.se/api/events`.
 4. Låt `admin.html` anropa sammanställningen via `?endpoint=https://stats.din-domän.se/api/stats`.
