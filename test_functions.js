@@ -211,21 +211,34 @@
     /* ==========================
        State
     ========================== */
-    const prefs = Object.assign({
+    const basePrefs = {
         rate: 1.0, voiceName: '', zoom: 1,
-        dyslexia: false,
+        readAssist: false,
         subs: false,
         theme: { bg: '#ffffff', fg: '#111111', accent: '#1b73e8', underline: true },
         ribbon: { opacity: 1.0, fg: '#ffffff', bg: '#0b0b0b', font: 36 },
         mask: { opacity: 0.55, height: 120 },
         dys: { scale: 1, line: 1.6, letter: 0.02, word: 0.08 },
         hoverRate: 1.0
-    }, loadPrefs());
+    };
 
-    if (Object.prototype.hasOwnProperty.call(prefs, 'contrast')) {
-        delete prefs.contrast;
-        savePrefs(prefs);
+    const storedPrefs = loadPrefs();
+    let prefsMigrated = false;
+
+    if (Object.prototype.hasOwnProperty.call(storedPrefs, 'dyslexia')) {
+        storedPrefs.readAssist = !!storedPrefs.dyslexia;
+        delete storedPrefs.dyslexia;
+        prefsMigrated = true;
     }
+
+    if (Object.prototype.hasOwnProperty.call(storedPrefs, 'contrast')) {
+        delete storedPrefs.contrast;
+        prefsMigrated = true;
+    }
+
+    const prefs = Object.assign(basePrefs, storedPrefs);
+
+    if (prefsMigrated) savePrefs(prefs);
 
     let reading = false, spotlightOn = false, hoverOn = false;
     let voices = [];
@@ -1064,14 +1077,14 @@
     });
 
     /* ==========================
-       Dyslexi / Undertexter
+       Lässtöd / Undertexter
     ========================== */
-    function setDyslexia(on) {
-        prefs.dyslexia = !!on; savePrefs(prefs);
-        document.documentElement.classList.toggle(`${NS}-dyslexia`, prefs.dyslexia);
+    function setReadAssist(on) {
+        prefs.readAssist = !!on; savePrefs(prefs);
+        document.documentElement.classList.toggle(`${NS}-readassist`, prefs.readAssist);
         const b = document.getElementById(`${NS}-tool-dys`);
-        if (b) b.setAttribute('aria-pressed', prefs.dyslexia ? 'true' : 'false');
-        prefs.dyslexia ? pushAid('dyslexia') : removeAid('dyslexia');
+        if (b) b.setAttribute('aria-pressed', prefs.readAssist ? 'true' : 'false');
+        prefs.readAssist ? pushAid('readassist') : removeAid('readassist');
     }
     function setSubs(on) {
         prefs.subs = !!on; savePrefs(prefs);
@@ -1084,12 +1097,19 @@
     /* ==========================
        UI
     ========================== */
-    function toolButton(id, iconKey, label, onclick) {
-        const el = h('button', {
+    function toolButton(id, iconKey, label, description, onclick) {
+        const attrs = {
             id: `${NS}-tool-${id}`,
             class: `${NS}-tool rw-tool rw-focus`,
-            type: 'button', 'aria-pressed': 'false', onclick
-        },
+            type: 'button',
+            'aria-pressed': 'false',
+            onclick
+        };
+        if (description) {
+            attrs.title = description;
+            attrs['aria-description'] = description;
+        }
+        const el = h('button', attrs,
             iconEl(iconKey),
             h('span', { class: 'rw-label' }, label)
         );
@@ -1278,32 +1298,32 @@
         const cell = (btn) => h('div', { class: 'rw-toolcell' }, btn);
 
         return h('div', { class: 'rw-tools' },
-            cell(toolButton('read', 'read', 'LÄS', (e) => {
+            cell(toolButton('read', 'read', 'LÄS', 'Läser upp markerad text eller hela sidan.', (e) => {
                 markKeyboardActivation(e);
                 toggleRead();
                 renderSettings(reading ? 'read' : null, e.currentTarget);
             })),
             // RADFOKUS bara >768 px
-            (!isSmallScreen() ? cell(toolButton('spotlight', 'spotlight', 'RADFOKUS', (e) => {
+            (!isSmallScreen() ? cell(toolButton('spotlight', 'spotlight', 'RADFOKUS', 'Mörklägger runt vald rad för ökad fokus.', (e) => {
                 markKeyboardActivation(e);
                 setSpotlight(!spotlightOn);
                 renderSettings(spotlightOn ? 'spotlight' : null, e.currentTarget);
             })) : null),
 
-            cell(toolButton('dys', 'dys', 'DYSLEXI', (e) => {
+            cell(toolButton('dys', 'dys', 'LÄSSTÖD', 'Justera typsnitt och avstånd för lättare läsning.', (e) => {
                 markKeyboardActivation(e);
-                setDyslexia(!prefs.dyslexia);
-                prefs.dyslexia ? renderSettings('dys', e.currentTarget) : renderSettings(null);
+                setReadAssist(!prefs.readAssist);
+                prefs.readAssist ? renderSettings('dys', e.currentTarget) : renderSettings(null);
             })),
 
             // HOVRING bara >768 px
-            (!isSmallScreen() ? cell(toolButton('hover', 'hover', 'LÄS VID HOVRING', (e) => {
+            (!isSmallScreen() ? cell(toolButton('hover', 'hover', 'LÄS VID HOVRING', 'Läser upp text när du för muspekaren över den.', (e) => {
                 markKeyboardActivation(e);
                 setHoverRead(!hoverOn);
                 hoverOn ? renderSettings('hover', e.currentTarget) : renderSettings(null);
             })) : null),
 
-            cell(toolButton('subs', 'subs', 'UNDERTEXTER', (e) => {
+            cell(toolButton('subs', 'subs', 'UNDERTEXTER', 'Visar upp en textremsa med det som läses upp.', (e) => {
                 markKeyboardActivation(e);
                 setSubs(!prefs.subs);
                 prefs.subs ? renderSettings('subs', e.currentTarget) : renderSettings(null);
@@ -1411,7 +1431,7 @@
         }
 
         // Initiera tillstånd/tema
-        document.documentElement.classList.toggle(`${NS}-dyslexia`, !!prefs.dyslexia);
+        document.documentElement.classList.toggle(`${NS}-readassist`, !!prefs.readAssist);
         applyTheme();
         updatePlayButton();
 
@@ -1450,7 +1470,7 @@
         switch (t) {
             case 'reading': stopReading(); break;
             case 'spotlight': setSpotlight(false); if (settingsEl) settingsEl.classList.remove('active'); break;
-            case 'dyslexia': setDyslexia(false); if (settingsEl) settingsEl.classList.remove('active'); break;
+            case 'readassist': setReadAssist(false); if (settingsEl) settingsEl.classList.remove('active'); break;
             case 'hover': setHoverRead(false); if (settingsEl) settingsEl.classList.remove('active'); break;
             case 'subs': setSubs(false); if (settingsEl) settingsEl.classList.remove('active'); break;
         }

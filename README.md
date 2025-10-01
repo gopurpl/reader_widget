@@ -271,7 +271,7 @@ ReaderWidget.close()
 * Uppläsning av markerad text eller hela sidan
 * Röstval (svenska/engelska)
 * Justerbar hastighet och zoom
-* Dyslexiläge
+* Lässtödsläge
 * Radfokus/spotlight
 * Snabb återställning av alla lägen
 * Tangentbordsgenvägar

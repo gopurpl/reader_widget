@@ -58,12 +58,18 @@
             widgetSubhead: '(Navigera med Tab)',
             close: 'Stäng',
             readLabel: 'LÄS',
+            readDescription: 'Läser upp markerad text eller hela sidan.',
             pauseLabel: 'PAUS',
             spotlightLabel: 'RADFOKUS',
-            dyslexiaLabel: 'DYSLEXI',
-            hoverLabel: 'LÄS VID HOVRING',
+            spotlightDescription: 'Mörklägger runt vald rad för ökad fokus.',
+            readAssistLabel: 'LÄSSTÖD',
+            readAssistDescription: 'Justera typsnitt och avstånd för lättare läsning.',
+            hoverLabel: 'LÄS VID PEKAREN',
+            hoverDescription: 'Läser upp text när du för muspekaren över den.',
             subsLabel: 'UNDERTEXTER',
+            subsDescription: 'Visar upp en textremsa med det som läses upp.',
             resetLabel: 'ÅTERSTÄLL',
+            resetDescription: 'Återställ alla hjälpmedel och inställningar.',
             resetAria: 'Återställ alla lägen',
             readAriaStart: 'Starta uppläsning',
             readAriaPause: 'Pausa uppläsning',
@@ -96,12 +102,18 @@
             widgetSubhead: '(Navigate with Tab)',
             close: 'Close',
             readLabel: 'READ',
+            readDescription: 'Read aloud the selected text or the whole page.',
             pauseLabel: 'PAUSE',
             spotlightLabel: 'LINE FOCUS',
-            dyslexiaLabel: 'DYSLEXIA',
+            spotlightDescription: 'Dim surrounding lines to stay focused.',
+            readAssistLabel: 'READ ASSIST',
+            readAssistDescription: 'Adjust typography for easier reading.',
             hoverLabel: 'HOVER READ',
+            hoverDescription: 'Read aloud when you hover the pointer over text.',
             subsLabel: 'CAPTIONS',
+            subsDescription: 'Show spoken text as on-screen captions.',
             resetLabel: 'RESET',
+            resetDescription: 'Reset all aids and preferences.',
             resetAria: 'Reset all aids',
             readAriaStart: 'Start reading',
             readAriaPause: 'Pause reading',
@@ -375,7 +387,7 @@
         read: 'auto_read_play',
         spotlight: 'center_focus_weak',
         dys: 'text_fields',
-        hover: 'highlight_mouse_cursor',
+        hover: 'mouse',
         subs: 'closed_caption',
         reset: 'restart_alt'
     };
@@ -397,7 +409,7 @@
 
         const icons = document.createElement('link');
         icons.rel = 'stylesheet';
-        icons.href = `https://fonts.googleapis.com/css2?family=${FAMILY}:opsz,wght,FILL,GRAD@24,500,0,0`;
+        icons.href = `https://fonts.googleapis.com/css2?family=${FAMILY}:opsz,wght,FILL,GRAD@48,300,0,-25`;
 
         document.head.append(pre1, pre2, inter, icons);
     }
@@ -423,7 +435,7 @@
             voiceName: '',
             voiceLang: currentLocale,
             zoom: 1,
-            dyslexia: false,
+            readAssist: false,
             subs: false,
             theme: { bg: '#ffffff', fg: '#111111', accent: '#1b73e8', underline: true },
             ribbon: { opacity: 1.0, fg: '#ffffff', bg: '#0b0b0b', font: 36 },
@@ -435,17 +447,29 @@
         };
     }
 
-    const prefs = Object.assign(createDefaultPrefs(), loadPrefs());
+    const storedPrefs = loadPrefs();
+    let prefsMigrated = false;
+
+    if (Object.prototype.hasOwnProperty.call(storedPrefs, 'dyslexia')) {
+        storedPrefs.readAssist = !!storedPrefs.dyslexia;
+        delete storedPrefs.dyslexia;
+        prefsMigrated = true;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(storedPrefs, 'contrast')) {
+        delete storedPrefs.contrast;
+        prefsMigrated = true;
+    }
+
+    const prefs = Object.assign(createDefaultPrefs(), storedPrefs);
+
+    if (prefsMigrated) savePrefs(prefs);
 
     if (!prefs.voiceLang) prefs.voiceLang = currentLocale;
     prefs.volume = normalizeVolume(prefs.volume);
     prefs.hoverVolume = normalizeVolume(
         Object.prototype.hasOwnProperty.call(prefs, 'hoverVolume') ? prefs.hoverVolume : prefs.volume
     );
-    if (Object.prototype.hasOwnProperty.call(prefs, 'contrast')) {
-        delete prefs.contrast;
-        savePrefs(prefs);
-    }
 
     let reading = false, spotlightOn = false, hoverOn = false;
     let voices = [];
@@ -1408,14 +1432,14 @@
     });
 
     /* ==========================
-       Dyslexi / Undertexter
+       Lässtöd / Undertexter
     ========================== */
-    function setDyslexia(on) {
-        prefs.dyslexia = !!on; savePrefs(prefs);
-        document.documentElement.classList.toggle(`${NS}-dyslexia`, prefs.dyslexia);
+    function setReadAssist(on) {
+        prefs.readAssist = !!on; savePrefs(prefs);
+        document.documentElement.classList.toggle(`${NS}-readassist`, prefs.readAssist);
         const b = document.getElementById(`${NS}-tool-dys`);
-        if (b) b.setAttribute('aria-pressed', prefs.dyslexia ? 'true' : 'false');
-        prefs.dyslexia ? pushAid('dyslexia') : removeAid('dyslexia');
+        if (b) b.setAttribute('aria-pressed', prefs.readAssist ? 'true' : 'false');
+        prefs.readAssist ? pushAid('readassist') : removeAid('readassist');
     }
     function setSubs(on) {
         prefs.subs = !!on; savePrefs(prefs);
@@ -1429,7 +1453,7 @@
         stopReading();
         setSpotlight(false);
         setHoverRead(false);
-        setDyslexia(false);
+        setReadAssist(false);
         setSubs(false);
 
         if (selWrapEl && selWrapEl.parentNode) { unwrap(selWrapEl); selWrapEl = null; }
@@ -1453,12 +1477,19 @@
     /* ==========================
        UI
     ========================== */
-    function toolButton(id, iconKey, label, onclick) {
-        const el = h('button', {
+    function toolButton(id, iconKey, label, description, onclick) {
+        const attrs = {
             id: `${NS}-tool-${id}`,
             class: `${NS}-tool rw-tool rw-focus`,
-            type: 'button', 'aria-pressed': 'false', onclick
-        },
+            type: 'button',
+            'aria-pressed': 'false',
+            onclick
+        };
+        if (description) {
+            attrs.title = description;
+            attrs['aria-description'] = description;
+        }
+        const el = h('button', attrs,
             iconEl(iconKey),
             h('span', { class: 'rw-label' }, label)
         );
@@ -1718,25 +1749,32 @@
         if (closeBtn) closeBtn.textContent = t('close');
 
         const toolLabels = [
-            ['read', 'readLabel'],
-            ['spotlight', 'spotlightLabel'],
-            ['dys', 'dyslexiaLabel'],
-            ['hover', 'hoverLabel'],
-            ['subs', 'subsLabel'],
-            ['reset', 'resetLabel']
+            ['read', 'readLabel', 'readDescription'],
+            ['spotlight', 'spotlightLabel', 'spotlightDescription'],
+            ['dys', 'readAssistLabel', 'readAssistDescription'],
+            ['hover', 'hoverLabel', 'hoverDescription'],
+            ['subs', 'subsLabel', 'subsDescription'],
+            ['reset', 'resetLabel', 'resetDescription']
         ];
 
-        toolLabels.forEach(([id, key]) => {
+        toolLabels.forEach(([id, key, descKey]) => {
             const btn = document.getElementById(`${NS}-tool-${id}`);
             if (!btn) return;
             const labelEl = btn.querySelector('.rw-label');
             if (labelEl) labelEl.textContent = t(key);
+            const desc = descKey ? t(descKey) : '';
+            if (desc) {
+                btn.title = desc;
+                btn.setAttribute('aria-description', desc);
+            } else {
+                btn.removeAttribute('title');
+                btn.removeAttribute('aria-description');
+            }
         });
 
         const resetBtn = document.getElementById(`${NS}-tool-reset`);
         if (resetBtn) {
             resetBtn.setAttribute('aria-label', t('resetAria'));
-            resetBtn.title = t('resetAria');
         }
 
         updatePlayButton();
@@ -1756,44 +1794,43 @@
         const cell = (btn) => h('div', { class: 'rw-toolcell' }, btn);
 
         return h('div', { class: 'rw-tools' },
-            cell(toolButton('read', 'read', t('readLabel'), (e) => {
+            cell(toolButton('read', 'read', t('readLabel'), t('readDescription'), (e) => {
                 markKeyboardActivation(e);
                 toggleRead();
                 renderSettings(reading ? 'read' : null, e.currentTarget);
             })),
             // RADFOKUS bara >768 px
-            (!isSmallScreen() ? cell(toolButton('spotlight', 'spotlight', t('spotlightLabel'), (e) => {
+            (!isSmallScreen() ? cell(toolButton('spotlight', 'spotlight', t('spotlightLabel'), t('spotlightDescription'), (e) => {
                 markKeyboardActivation(e);
                 setSpotlight(!spotlightOn);
                 renderSettings(spotlightOn ? 'spotlight' : null, e.currentTarget);
             })) : null),
 
-            cell(toolButton('dys', 'dys', t('dyslexiaLabel'), (e) => {
+            cell(toolButton('dys', 'dys', t('readAssistLabel'), t('readAssistDescription'), (e) => {
                 markKeyboardActivation(e);
-                setDyslexia(!prefs.dyslexia);
-                prefs.dyslexia ? renderSettings('dys', e.currentTarget) : renderSettings(null);
+                setReadAssist(!prefs.readAssist);
+                prefs.readAssist ? renderSettings('dys', e.currentTarget) : renderSettings(null);
             })),
 
             // HOVRING bara >768 px
-            (!isSmallScreen() ? cell(toolButton('hover', 'hover', t('hoverLabel'), (e) => {
+            (!isSmallScreen() ? cell(toolButton('hover', 'hover', t('hoverLabel'), t('hoverDescription'), (e) => {
                 markKeyboardActivation(e);
                 setHoverRead(!hoverOn);
                 hoverOn ? renderSettings('hover', e.currentTarget) : renderSettings(null);
             })) : null),
 
-            cell(toolButton('subs', 'subs', t('subsLabel'), (e) => {
+            cell(toolButton('subs', 'subs', t('subsLabel'), t('subsDescription'), (e) => {
                 markKeyboardActivation(e);
                 setSubs(!prefs.subs);
                 prefs.subs ? renderSettings('subs', e.currentTarget) : renderSettings(null);
             })),
 
             (() => {
-                const btn = toolButton('reset', 'reset', t('resetLabel'), (e) => {
+                const btn = toolButton('reset', 'reset', t('resetLabel'), t('resetDescription'), (e) => {
                     markKeyboardActivation(e);
                     resetWidgetState();
                 });
                 btn.setAttribute('aria-label', t('resetAria'));
-                btn.title = t('resetAria');
                 btn.setAttribute('aria-pressed', 'false');
                 return cell(btn);
             })()
@@ -1933,7 +1970,7 @@
         }
 
         // 5) Initiera tillstånd/tema
-        document.documentElement.classList.toggle(`${NS}-dyslexia`, !!prefs.dyslexia);
+        document.documentElement.classList.toggle(`${NS}-readassist`, !!prefs.readAssist);
         applyTheme();
         updatePlayButton();
 
@@ -2086,7 +2123,7 @@
         switch (t) {
             case 'reading': stopReading(); break;
             case 'spotlight': setSpotlight(false); if (settingsEl) settingsEl.classList.remove('active'); break;
-            case 'dyslexia': setDyslexia(false); if (settingsEl) settingsEl.classList.remove('active'); break;
+            case 'readassist': setReadAssist(false); if (settingsEl) settingsEl.classList.remove('active'); break;
             case 'hover': setHoverRead(false); if (settingsEl) settingsEl.classList.remove('active'); break;
             case 'subs': setSubs(false); if (settingsEl) settingsEl.classList.remove('active'); break;
         }
