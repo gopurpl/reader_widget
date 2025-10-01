@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <title>ReaderWidget – Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 2rem clamp(1.2rem, 4vw, 3rem);
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    h1 {
+      margin-top: 0;
+      font-size: clamp(1.6rem, 5vw, 2.2rem);
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+      padding: clamp(1rem, 3vw, 1.75rem);
+      margin-bottom: 2rem;
+      max-width: 960px;
+    }
+    #status {
+      font-size: 0.95rem;
+      color: #475569;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    th {
+      font-weight: 600;
+      background: #f1f5f9;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: #e0f2fe;
+      color: #0369a1;
+      border-radius: 999px;
+      padding: 0.2rem 0.75rem;
+      font-size: 0.8rem;
+    }
+    footer {
+      font-size: 0.85rem;
+      color: #475569;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      background: rgba(148, 163, 184, 0.16);
+      padding: 0.1rem 0.3rem;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <main class="card" aria-labelledby="admin-title">
+    <p class="pill">Intern sida</p>
+    <h1 id="admin-title">ReaderWidget – Användningsstatistik</h1>
+    <p id="status">Laddar data…</p>
+    <table id="stats-table" hidden>
+      <thead>
+        <tr>
+          <th>Kund</th>
+          <th>Domän</th>
+          <th>Unika användare</th>
+          <th>Senast aktiv</th>
+          <th>Totala sessioner</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </main>
+  <footer>
+    <p>Konfigurera endpoint via <code>window.__RW_ADMIN_CONFIG</code> eller query-parametern <code>?endpoint=https://…</code>.</p>
+  </footer>
+  <script>
+    (function () {
+      const defaults = {
+        endpoint: '',
+        token: '',
+        headers: null
+      };
+      const globalCfg = window.__RW_ADMIN_CONFIG || {};
+      const params = new URLSearchParams(location.search);
+      const endpoint = params.get('endpoint') || globalCfg.endpoint || defaults.endpoint;
+      const token = params.get('token') || globalCfg.token || defaults.token;
+      const extraHeaders = Object.assign({}, defaults.headers || {}, globalCfg.headers || {});
+
+      const statusEl = document.getElementById('status');
+      const table = document.getElementById('stats-table');
+      const tbody = table.querySelector('tbody');
+
+      if (!endpoint) {
+        statusEl.textContent = 'Ingen endpoint konfigurerad. Ange window.__RW_ADMIN_CONFIG.endpoint eller använd ?endpoint=… i URL:en.';
+        return;
+      }
+
+      const headers = Object.assign({
+        'Accept': 'application/json'
+      }, extraHeaders);
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      fetch(endpoint, {
+        method: 'GET',
+        headers
+      }).then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      }).then((data) => {
+        if (!Array.isArray(data) || !data.length) {
+          statusEl.textContent = 'Inga mätvärden hittades.';
+          return;
+        }
+
+        const formatter = new Intl.DateTimeFormat('sv-SE', {
+          dateStyle: 'medium',
+          timeStyle: 'short'
+        });
+
+        tbody.textContent = '';
+        data.sort((a, b) => (b.uniqueUsers || 0) - (a.uniqueUsers || 0)).forEach((row) => {
+          const tr = document.createElement('tr');
+          const lastSeen = row.lastSeen ? formatter.format(new Date(row.lastSeen)) : '–';
+          tr.innerHTML = `
+            <td>${row.customerName || row.customerId || '—'}</td>
+            <td>${row.host || '—'}</td>
+            <td>${row.uniqueUsers != null ? row.uniqueUsers : '—'}</td>
+            <td>${lastSeen}</td>
+            <td>${row.totalSessions != null ? row.totalSessions : '—'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        table.hidden = false;
+        statusEl.textContent = `Senast uppdaterad ${formatter.format(new Date())}`;
+      }).catch((err) => {
+        statusEl.textContent = `Misslyckades hämta statistik (${err.message}). Kontrollera endpoint och rättigheter.`;
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 (function () {
   var VERSION = "0.1.3";
   var CUSTOMER_DIR = "customer_css/";
+  var ANALYTICS_ENDPOINT = ""; // Sätt till ditt API-endpoint för användningsstatistik
 
   var ALLOW = [
     "localhost",
@@ -14,6 +15,13 @@
     "127.0.0.1":      "mitt_nercia.css",
     "mitt.nercia.se": "mitt_nercia.css",
     "nercia.se":      "mitt_nercia.css",
+  };
+  var CUSTOMER_ID = {
+    "localhost": "demo_local",
+    "127.0.0.1": "demo_local",
+    "[::1]": "demo_local",
+    "mitt.nercia.se": "mitt_nercia",
+    "nercia.se": "mitt_nercia"
   };
 
   function currentScriptBase() {
@@ -51,6 +59,17 @@
 
   var host = location.hostname;
   if (!allowedDomain(host)) return;
+
+  var prevConfig = window.__ReaderWidgetConfig || {};
+  var resolvedCustomerId = prevConfig.customerId || CUSTOMER_ID[host] || host;
+  var analyticsCfg = Object.assign({}, prevConfig.analytics || {});
+  if (!analyticsCfg.endpoint && ANALYTICS_ENDPOINT) analyticsCfg.endpoint = ANALYTICS_ENDPOINT;
+
+  window.__ReaderWidgetConfig = Object.assign({}, prevConfig, {
+    version: VERSION,
+    customerId: resolvedCustomerId,
+    analytics: analyticsCfg
+  });
 
   // 1) Bas-CSS
   var linkBase = document.createElement("link");

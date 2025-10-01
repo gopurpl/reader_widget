@@ -136,6 +136,87 @@
         return key;
     }
 
+    /* ==========================
+       Analytics / Usage tracking
+    ========================== */
+    const RW_CONFIG = window.__ReaderWidgetConfig || {};
+    const analyticsConfig = RW_CONFIG.analytics || {};
+    const analyticsEndpoint = typeof analyticsConfig.endpoint === 'string' ? analyticsConfig.endpoint.trim() : '';
+    const analyticsEventName = analyticsConfig.eventName || 'widget_opened';
+    const customerId = RW_CONFIG.customerId || location.hostname;
+    const widgetVersion = RW_CONFIG.version || null;
+    const USER_ID_KEY = 'rw_user_id_v1';
+    const USAGE_SENT_KEY = `rw_usage_sent_v1::${customerId}`;
+    let usageReported = false;
+    let usagePending = false;
+
+    function storageGet(key) {
+        try { return localStorage.getItem(key); } catch { return null; }
+    }
+    function storageSet(key, value) {
+        try { localStorage.setItem(key, value); } catch { /* ignore */ }
+    }
+
+    function ensureUserId() {
+        const existing = storageGet(USER_ID_KEY);
+        if (existing) return existing;
+        const fallback = Math.random().toString(16).slice(2) + Date.now().toString(16);
+        const id = (typeof crypto === 'object' && crypto && typeof crypto.randomUUID === 'function')
+            ? crypto.randomUUID()
+            : `rw-${fallback}`;
+        storageSet(USER_ID_KEY, id);
+        return id;
+    }
+
+    function markUsageReported() {
+        usageReported = true;
+        usagePending = false;
+        storageSet(USAGE_SENT_KEY, new Date().toISOString());
+    }
+
+    if (storageGet(USAGE_SENT_KEY)) usageReported = true;
+
+    function reportUsageOnce(reason) {
+        if (!analyticsEndpoint || usageReported || usagePending) return;
+        usagePending = true;
+
+        const payload = {
+            event: analyticsEventName,
+            reason: reason || 'panel_open',
+            customerId,
+            hostname: location.hostname,
+            userId: ensureUserId(),
+            locale: currentLocale,
+            widgetVersion,
+            timestamp: new Date().toISOString()
+        };
+
+        const body = JSON.stringify(payload);
+
+        if (typeof navigator === 'object' && navigator && typeof navigator.sendBeacon === 'function') {
+            const sent = navigator.sendBeacon(analyticsEndpoint, new Blob([body], { type: 'application/json' }));
+            if (sent) {
+                markUsageReported();
+                return;
+            }
+        }
+
+        if (typeof fetch === 'function') {
+            fetch(analyticsEndpoint, {
+                method: 'POST',
+                credentials: analyticsConfig.credentials || 'omit',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, analyticsConfig.headers || {}),
+                body
+            }).then(() => {
+                markUsageReported();
+            }).catch(() => {
+                usagePending = false;
+            });
+        } else {
+            usagePending = false;
+        }
+    }
+
     /** Visas om domänen inte är tillåten (liten, diskret panel nere till höger) */
     function rwShowPlaceholder(reason) {
         // inget UI om du vill vara helt tyst: bara return;
@@ -970,6 +1051,7 @@
         if (selWrapEl && selWrapEl.parentNode) { unwrap(selWrapEl); selWrapEl = null; }
         removeAid('reading');
         if (settingsEl) settingsEl.classList.remove('active');
+        updateReadHoverInterlock();
     }
 
     function computeWordStarts(text) {
@@ -995,12 +1077,12 @@
         const sentences = splitSentences(text || '');
         if (!sentences.length) return;
 
-        reading = true; updatePlayButton(); pushAid('reading');
+        reading = true; updatePlayButton(); pushAid('reading'); updateReadHoverInterlock();
         let si = 0;
         const autoVoice = voices.find(v => v.name === prefs.voiceName) || voices[0];
 
         function finish() {
-            reading = false; updatePlayButton(); removeAid('reading');
+            reading = false; updatePlayButton(); removeAid('reading'); updateReadHoverInterlock();
             if (prefs.subs) hideSubs();
         }
 
@@ -1064,7 +1146,7 @@
 
         if (!seq.length) return;
 
-        reading = true; updatePlayButton(); pushAid('reading');
+        reading = true; updatePlayButton(); pushAid('reading'); updateReadHoverInterlock();
         let si = 0;
         if (startSentenceText) {
             const idx = seq.findIndex(s => (s.text || '').includes(startSentenceText));
@@ -1073,7 +1155,7 @@
         const autoVoice = voices.find(v => v.name === prefs.voiceName) || voices[0];
 
         function finish() {
-            reading = false; updatePlayButton(); removeAid('reading');
+            reading = false; updatePlayButton(); removeAid('reading'); updateReadHoverInterlock();
             if (hi) { hi.clearAll(); hi = null; }
             if (selWrapEl && selWrapEl.parentNode) { unwrap(selWrapEl); selWrapEl = null; }
             if (prefs.subs) hideSubs();
@@ -1153,12 +1235,12 @@
         const seq = (hi && hi.sentences && hi.sentences.length) ? hi.sentences : splitSentences(wrap.innerText || '').map(t => ({ text: t, block: false }));
         if (!seq.length) { unwrap(wrap); return; }
 
-        reading = true; updatePlayButton(); pushAid('reading');
+        reading = true; updatePlayButton(); pushAid('reading'); updateReadHoverInterlock();
         let si = 0;
         const autoVoice = voices.find(v => v.name === prefs.voiceName) || voices[0];
 
         function finish() {
-            reading = false; updatePlayButton(); removeAid('reading');
+            reading = false; updatePlayButton(); removeAid('reading'); updateReadHoverInterlock();
             if (hi) { hi.clearAll(); hi = null; }
             if (wrap && wrap.parentNode) unwrap(wrap);
             if (prefs.subs) hideSubs();
@@ -1221,6 +1303,8 @@
 
     function toggleRead() {
         if (reading) { stopReading(); return; }
+
+        if (hoverOn) setHoverRead(false);
 
         const sel = window.getSelection && window.getSelection();
         const hasLiveSel = sel && sel.rangeCount && !sel.isCollapsed;
@@ -1380,6 +1464,31 @@
         );
         if (id === 'read') el.addEventListener('mousedown', preserveSelectionMouseDown);
         return el;
+    }
+
+    function setToolDisabled(btn, disabled) {
+        if (!btn) return;
+        if (disabled) {
+            btn.disabled = true;
+            btn.setAttribute('aria-disabled', 'true');
+        } else {
+            btn.disabled = false;
+            btn.removeAttribute('aria-disabled');
+        }
+    }
+
+    function updateReadHoverInterlock() {
+        const readBtn = document.getElementById(`${NS}-tool-read`);
+        const hoverBtn = document.getElementById(`${NS}-tool-hover`);
+        if (IS_TOUCH) {
+            if (hoverBtn) {
+                hoverBtn.disabled = true;
+                hoverBtn.setAttribute('aria-disabled', 'true');
+            }
+        } else {
+            setToolDisabled(hoverBtn, !!reading);
+        }
+        setToolDisabled(readBtn, !!hoverOn);
     }
 
     function renderSettings(which, afterBtnEl) {
@@ -1713,17 +1822,22 @@
             toolsHost.replaceWith(newTools);
         }
         toolsHost = newTools;
+        updatePlayButton();
+        updateReadHoverInterlock();
+        disableHoverOnTouch();
     }
 
 
 
     function setHoverRead(on) {
         if (isSmallScreen() && on) return;
+        if (on && reading) stopReading();
         hoverOn = !!on;
         const b = document.getElementById(`${NS}-tool-hover`);
         if (b) b.setAttribute('aria-pressed', hoverOn ? 'true' : 'false');
         if (!hoverOn && hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; hoverLastEl = null; }
         hoverOn ? pushAid('hover') : removeAid('hover');
+        updateReadHoverInterlock();
     }
 
     function disableHoverOnTouch() {
@@ -1941,6 +2055,7 @@
         }
 
         panel.style.display = 'block';
+        reportUsageOnce('panel_open');
 
         if (useLauncher && launcher) launcher.style.display = 'none';
 

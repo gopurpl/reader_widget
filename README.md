@@ -103,6 +103,54 @@ var CUSTOMER_CSS = { /* tomt för denna */ };
 
 ---
 
+## Uppföljning av användning (unika användare)
+
+Widgeten kan nu rapportera när någon öppnar panelen, tillsammans med ett anonymt men stabilt
+användar-ID per webbläsare. För att aktivera detta behövs tre steg:
+
+1. **Provisionera ett API-endpoint** som tar emot `POST` med JSON enligt:
+
+   ```json
+   {
+     "event": "widget_opened",
+     "reason": "panel_open",
+     "customerId": "mitt_nercia",
+     "hostname": "mitt.nercia.se",
+     "userId": "9a1b...",
+     "locale": "sv",
+     "widgetVersion": "0.1.3",
+     "timestamp": "2025-01-01T09:15:00.000Z"
+   }
+   ```
+
+   *Spara `userId` + `customerId` för att räkna unika webbläsare. `timestamp` och `reason` kan
+   användas till tidslinjer och sessioner.*
+
+2. **Sätt endpointen i `allowlist.loader.js`:**
+
+   ```js
+   var ANALYTICS_ENDPOINT = "https://stats.din-domän.se/api/reader-widget/usage";
+   ```
+
+   Vid behov kan du lägga till headers/credentials genom `window.__ReaderWidgetConfig.analytics`
+   innan loadern körs.
+
+3. **Adminvy:** `admin.html` listar data från endpointen. Ange endpoint/token med
+
+   ```js
+   window.__RW_ADMIN_CONFIG = {
+     endpoint: "https://stats.din-domän.se/api/reader-widget/usage/summary",
+     token: "<valfri bearer>"
+   };
+   ```
+
+   Alternativt kan du använda query-parametrar `?endpoint=…&token=…` när du öppnar sidan.
+
+**Så räknas unika användare:** ett anonymiserat ID sparas i `localStorage`. Det är per webbläsare
+och per kunddomän, vilket ger en god approximation utan att lagra persondata.
+
+---
+
 ## Kund-CSS exempel
 
 ```css

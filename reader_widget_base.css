@@ -198,6 +198,13 @@
     gap: 0;
   }
 
+  .rw-tool:disabled,
+  .rw-tool[aria-disabled="true"] {
+    opacity: .45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
   .rw-tool:hover {
     background: #f3f4f6;
   }
