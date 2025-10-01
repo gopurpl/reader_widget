@@ -74,6 +74,7 @@
             settingsVoice: 'Språk',
             voiceSwedish: 'Svenska',
             voiceEnglish: 'Engelska',
+            settingsVolume: 'Volym',
             settingsMaskOpacity: 'Mörkläggning',
             settingsMaskHeight: 'Läsbandets höjd',
             settingsLineSpacing: 'Radavstånd',
@@ -111,6 +112,7 @@
             settingsVoice: 'Voice',
             voiceSwedish: 'Swedish',
             voiceEnglish: 'English',
+            settingsVolume: 'Volume',
             settingsMaskOpacity: 'Mask opacity',
             settingsMaskHeight: 'Reading strip height',
             settingsLineSpacing: 'Line spacing',
@@ -202,6 +204,11 @@
     }
     const savePrefs = (p) => { try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch { } };
     const loadPrefs = () => { try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); } catch { return {}; } };
+    const clamp = (num, min, max) => Math.min(max, Math.max(min, num));
+    const normalizeVolume = (val) => {
+        const num = parseFloat(val);
+        return Number.isFinite(num) ? clamp(num, 0, 1) : 1;
+    };
 
     /* ==========================
        Helpers
@@ -341,13 +348,19 @@
             ribbon: { opacity: 1.0, fg: '#ffffff', bg: '#0b0b0b', font: 36 },
             mask: { opacity: 0.55, height: 120 },
             dys: { scale: 1, line: 1.6, letter: 0.02, word: 0.08 },
-            hoverRate: 1.0
+            volume: 1.0,
+            hoverRate: 1.0,
+            hoverVolume: 1.0
         };
     }
 
     const prefs = Object.assign(createDefaultPrefs(), loadPrefs());
 
     if (!prefs.voiceLang) prefs.voiceLang = currentLocale;
+    prefs.volume = normalizeVolume(prefs.volume);
+    prefs.hoverVolume = normalizeVolume(
+        Object.prototype.hasOwnProperty.call(prefs, 'hoverVolume') ? prefs.hoverVolume : prefs.volume
+    );
     if (Object.prototype.hasOwnProperty.call(prefs, 'contrast')) {
         delete prefs.contrast;
         savePrefs(prefs);
@@ -977,7 +990,7 @@
         return { idx: k, start: boundaries[k] };
     }
 
-    function speakFromText(text) {
+    function speakFromText(text, opts = {}) {
         if (!('speechSynthesis' in window)) { alert(t('ttsNotSupported')); return; }
         const sentences = splitSentences(text || '');
         if (!sentences.length) return;
@@ -1005,6 +1018,8 @@
 
             const u = new SpeechSynthesisUtterance(cur.trim().length === 1 ? cur.toLowerCase() + '.' : cur);
             u.rate = prefs.rate; if (autoVoice) u.voice = autoVoice;
+            const vol = Object.prototype.hasOwnProperty.call(opts, 'volume') ? opts.volume : prefs.volume;
+            u.volume = normalizeVolume(vol);
 
             u.onstart = () => {
                 if (prefs.subs && wordStarts.length) renderRibbonSentence(cur, wordStarts[0], next);
@@ -1079,6 +1094,8 @@
 
             const u = new SpeechSynthesisUtterance(text.trim().length === 1 ? text.toLowerCase() + '.' : text);
             u.rate = prefs.rate; if (autoVoice) u.voice = autoVoice;
+            const vol = Object.prototype.hasOwnProperty.call(opts, 'volume') ? opts.volume : prefs.volume;
+            u.volume = normalizeVolume(vol);
 
             u.onstart = () => {
                 if (hi) highlightSentence(hi, si);
@@ -1117,7 +1134,7 @@
     }
 
 
-    function speakFromSelection(range) {
+    function speakFromSelection(range, opts = {}) {
         if (!('speechSynthesis' in window)) { alert(t('ttsNotSupported')); return; }
         if (!range) return;
 
@@ -1127,7 +1144,7 @@
             range.surroundContents(wrap);
         } catch (e) {
             const txt = range.toString();
-            if (txt && txt.trim()) speakFromText(txt);
+            if (txt && txt.trim()) speakFromText(txt, opts);
             return;
         }
         selWrapEl = wrap;
@@ -1162,6 +1179,8 @@
 
             const u = new SpeechSynthesisUtterance(text.trim().length === 1 ? text.toLowerCase() + '.' : text);
             u.rate = prefs.rate; if (autoVoice) u.voice = autoVoice;
+            const vol = Object.prototype.hasOwnProperty.call(opts, 'volume') ? opts.volume : prefs.volume;
+            u.volume = normalizeVolume(vol);
 
             u.onstart = () => {
                 if (hi) highlightSentence(hi, si);
@@ -1276,11 +1295,12 @@
 
             if (reading) stopReading();
             const old = prefs.rate; prefs.rate = prefs.hoverRate;
+            const hoverVol = prefs.hoverVolume;
 
             speakFromElement(
                 candidate,
                 local,
-                { includeWidget: inWidget, strictRoot: inWidget }
+                { includeWidget: inWidget, strictRoot: inWidget, volume: hoverVol }
             );
 
             prefs.rate = old;
@@ -1387,6 +1407,15 @@
                     oninput: e => { prefs.rate = parseFloat(e.target.value); savePrefs(prefs); }
                 })
             );
+            addRow(t('settingsVolume'),
+                h('input', {
+                    class: 'rw-slider', type: 'range', min: '0', max: '1', step: '0.05', value: String(prefs.volume),
+                    oninput: e => {
+                        prefs.volume = normalizeVolume(e.target.value);
+                        savePrefs(prefs);
+                    }
+                })
+            );
             const sel = h('select', {
                 class: 'rw-select',
                 onchange: e => {
@@ -1465,6 +1494,15 @@
                 h('input', {
                     class: 'rw-slider', type: 'range', min: '0.7', max: '1.6', step: '0.05', value: String(prefs.hoverRate),
                     oninput: e => { prefs.hoverRate = parseFloat(e.target.value); savePrefs(prefs); }
+                })
+            );
+            addRow(t('settingsVolume'),
+                h('input', {
+                    class: 'rw-slider', type: 'range', min: '0', max: '1', step: '0.05', value: String(prefs.hoverVolume),
+                    oninput: e => {
+                        prefs.hoverVolume = normalizeVolume(e.target.value);
+                        savePrefs(prefs);
+                    }
                 })
             );
         }
