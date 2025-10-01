@@ -176,6 +176,7 @@ ReaderWidget.close()
 * Justerbar hastighet och zoom
 * Dyslexiläge
 * Radfokus/spotlight
+* Snabb återställning av alla lägen
 * Tangentbordsgenvägar
 
 ---

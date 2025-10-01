@@ -63,6 +63,8 @@
             dyslexiaLabel: 'DYSLEXI',
             hoverLabel: 'LÄS VID HOVRING',
             subsLabel: 'UNDERTEXTER',
+            resetLabel: 'ÅTERSTÄLL',
+            resetAria: 'Återställ alla lägen',
             readAriaStart: 'Starta uppläsning',
             readAriaPause: 'Pausa uppläsning',
             readTitleStart: 'Starta uppläsning (Alt+L)',
@@ -98,6 +100,8 @@
             dyslexiaLabel: 'DYSLEXIA',
             hoverLabel: 'HOVER READ',
             subsLabel: 'CAPTIONS',
+            resetLabel: 'RESET',
+            resetAria: 'Reset all aids',
             readAriaStart: 'Start reading',
             readAriaPause: 'Pause reading',
             readTitleStart: 'Start reading (Alt+L)',
@@ -276,7 +280,8 @@
         spotlight: 'center_focus_weak',
         dys: 'text_fields',
         hover: 'highlight_mouse_cursor',
-        subs: 'closed_caption'
+        subs: 'closed_caption',
+        reset: 'restart_alt'
     };
     const MATERIAL_STYLE_CLASS = 'material-symbols-outlined'; // alt: '-rounded' | '-sharp'
 
@@ -316,16 +321,23 @@
     /* ==========================
        State
     ========================== */
-    const prefs = Object.assign({
-        rate: 1.0, voiceName: '', voiceLang: currentLocale, zoom: 1,
-        dyslexia: false,
-        subs: false,
-        theme: { bg: '#ffffff', fg: '#111111', accent: '#1b73e8', underline: true },
-        ribbon: { opacity: 1.0, fg: '#ffffff', bg: '#0b0b0b', font: 36 },
-        mask: { opacity: 0.55, height: 120 },
-        dys: { scale: 1, line: 1.6, letter: 0.02, word: 0.08 },
-        hoverRate: 1.0
-    }, loadPrefs());
+    function createDefaultPrefs() {
+        return {
+            rate: 1.0,
+            voiceName: '',
+            voiceLang: currentLocale,
+            zoom: 1,
+            dyslexia: false,
+            subs: false,
+            theme: { bg: '#ffffff', fg: '#111111', accent: '#1b73e8', underline: true },
+            ribbon: { opacity: 1.0, fg: '#ffffff', bg: '#0b0b0b', font: 36 },
+            mask: { opacity: 0.55, height: 120 },
+            dys: { scale: 1, line: 1.6, letter: 0.02, word: 0.08 },
+            hoverRate: 1.0
+        };
+    }
+
+    const prefs = Object.assign(createDefaultPrefs(), loadPrefs());
 
     if (!prefs.voiceLang) prefs.voiceLang = currentLocale;
     if (Object.prototype.hasOwnProperty.call(prefs, 'contrast')) {
@@ -1296,6 +1308,31 @@
         prefs.subs ? pushAid('subs') : removeAid('subs');
     }
 
+    function resetWidgetState() {
+        stopReading();
+        setSpotlight(false);
+        setHoverRead(false);
+        setDyslexia(false);
+        setSubs(false);
+
+        if (selWrapEl && selWrapEl.parentNode) { unwrap(selWrapEl); selWrapEl = null; }
+
+        aids.length = 0;
+
+        const defaults = createDefaultPrefs();
+        Object.assign(prefs, defaults);
+        if (!prefs.voiceLang) prefs.voiceLang = currentLocale;
+        savePrefs(prefs);
+
+        applyTheme();
+        updatePlayButton();
+        disableHoverOnTouch();
+
+        if (settingsEl) settingsEl.classList.remove('active');
+        updateMiniState();
+        markWidgetActivity();
+    }
+
     /* ==========================
        UI
     ========================== */
@@ -1525,7 +1562,8 @@
             ['spotlight', 'spotlightLabel'],
             ['dys', 'dyslexiaLabel'],
             ['hover', 'hoverLabel'],
-            ['subs', 'subsLabel']
+            ['subs', 'subsLabel'],
+            ['reset', 'resetLabel']
         ];
 
         toolLabels.forEach(([id, key]) => {
@@ -1534,6 +1572,12 @@
             const labelEl = btn.querySelector('.rw-label');
             if (labelEl) labelEl.textContent = t(key);
         });
+
+        const resetBtn = document.getElementById(`${NS}-tool-reset`);
+        if (resetBtn) {
+            resetBtn.setAttribute('aria-label', t('resetAria'));
+            resetBtn.title = t('resetAria');
+        }
 
         updatePlayButton();
         disableHoverOnTouch();
@@ -1581,7 +1625,18 @@
                 markKeyboardActivation(e);
                 setSubs(!prefs.subs);
                 prefs.subs ? renderSettings('subs', e.currentTarget) : renderSettings(null);
-            }))
+            })),
+
+            (() => {
+                const btn = toolButton('reset', 'reset', t('resetLabel'), (e) => {
+                    markKeyboardActivation(e);
+                    resetWidgetState();
+                });
+                btn.setAttribute('aria-label', t('resetAria'));
+                btn.title = t('resetAria');
+                btn.setAttribute('aria-pressed', 'false');
+                return cell(btn);
+            })()
         );
     }
 
