@@ -73,6 +73,50 @@
     will-change: width, opacity, box-shadow;
   }
 
+  /* ---------- Launcher button ---------- */
+  .rw-launcher {
+    position: fixed;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0));
+    right: calc(16px + env(safe-area-inset-right, 0));
+    z-index: 2147483646;
+    width: 58px;
+    height: 58px;
+    border-radius: 999px;
+    border: none;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: var(--rw-bg);
+    color: var(--rw-fg);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .2);
+    cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+
+  .rw-launcher:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .22);
+  }
+
+  .rw-launcher:active {
+    transform: translateY(1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .2);
+  }
+
+  .rw-launcher:focus-visible {
+    outline: 3px solid rgba(27, 115, 232, .5);
+    outline-offset: 3px;
+  }
+
+  .rw-launcher .rw-ico {
+    width: auto;
+    height: auto;
+  }
+
+  .rw-launcher .rw-mi {
+    font-size: 32px;
+  }
+
   /* visual separators */
   .rw-hr {
     border: 0;
@@ -450,6 +494,11 @@
       width: min(88vw, 380px);
       max-width: calc(100vw - 16px - env(safe-area-inset-left, 0) - env(safe-area-inset-right, 0));
       max-height: min(70vh, 620px);
+    }
+
+    .rw-launcher {
+      bottom: calc(12px + env(safe-area-inset-bottom, 0));
+      right: calc(12px + env(safe-area-inset-right, 0));
     }
 
     .rw-body {

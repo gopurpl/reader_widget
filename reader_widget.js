@@ -176,7 +176,15 @@
     // NEW: Touch/coarse-pointer detection
     const IS_TOUCH = (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches) || ('ontouchstart' in window);
     const mqSmall = window.matchMedia('(max-width: 768px)');
+    const hoverMq = (typeof matchMedia === 'function') ? matchMedia('(hover: hover)') : null;
+    const anyHoverMq = (typeof matchMedia === 'function') ? matchMedia('(any-hover: hover)') : null;
     const isSmallScreen = () => mqSmall.matches;
+    const hasHoverCapability = () => {
+        if (typeof matchMedia !== 'function') return !IS_TOUCH;
+        return (hoverMq && hoverMq.matches) || (anyHoverMq && anyHoverMq.matches);
+    };
+    const isDesktopHoverContext = () => !isSmallScreen() && hasHoverCapability();
+    const shouldUseLauncher = () => !isDesktopHoverContext();
 
     /* ==========================
        Utils
@@ -347,7 +355,7 @@
 
     let reading = false, spotlightOn = false, hoverOn = false;
     let voices = [];
-    let panel, spotlight, ribbonEl, settingsEl, toolsHost;
+    let panel, spotlight, ribbonEl, settingsEl, toolsHost, launcher;
 
     // Auto-minimize efter tangentbordsaktivering
     const AUTO_MIN_MS = 5000;
@@ -366,11 +374,11 @@
     }
 
     function scheduleAutoMinimize(opts = {}) {
-        if (!panel || panel.style.display === 'none') return;
+        if (!panel || panel.style.display === 'none' || !isDesktopHoverContext()) return;
         cancelAutoMinimize();
         autoMiniTimer = setTimeout(() => {
             autoMiniTimer = null;
-            if (!panel || panel.style.display === 'none') return;
+            if (!panel || panel.style.display === 'none' || !isDesktopHoverContext()) return;
             if (shouldStayExpanded(opts)) {
                 scheduleAutoMinimize(opts);
                 return;
@@ -390,14 +398,13 @@
         if (!panel) return;
         if (kb) panel.classList.remove('rw-mini');
         cancelAutoMinimize();
-        scheduleAutoMinimize();
+        if (isDesktopHoverContext()) scheduleAutoMinimize();
     }
 
     // Expand/mini via hover på större skärmar (ingen touch)
     function enableHoverMiniBehavior() {
         if (!panel) return;
-        // Undvik hover-beteende på touch-enheter
-        const HAS_HOVER = (typeof matchMedia === 'function') && (matchMedia('(hover: hover)').matches || matchMedia('(any-hover: hover)').matches);
+        const allowHoverMini = isDesktopHoverContext();
 
         function shouldMini() {
             const hasFocus = panel.contains(document.activeElement);
@@ -425,12 +432,18 @@
         panel.removeEventListener?.('mouseenter', panel.__rwOnEnter);
         panel.removeEventListener?.('mouseleave', panel.__rwOnLeave);
 
-        if (HAS_HOVER) {
+        if (panel.__rwOnEnter) panel.removeEventListener('mouseenter', panel.__rwOnEnter);
+        if (panel.__rwOnLeave) panel.removeEventListener('mouseleave', panel.__rwOnLeave);
+
+        if (allowHoverMini) {
             panel.addEventListener('mouseenter', onEnter);
             panel.addEventListener('mouseleave', onLeave);
             // spara referenser för clean-up/rebind
             panel.__rwOnEnter = onEnter;
             panel.__rwOnLeave = onLeave;
+        } else {
+            panel.__rwOnEnter = null;
+            panel.__rwOnLeave = null;
         }
     }
 
@@ -1687,6 +1700,13 @@
         }
     }
 
+    function updateLauncherForViewport() {
+        if (!launcher) return;
+        const shouldShow = shouldUseLauncher() && (!panel || panel.style.display === 'none');
+        launcher.style.display = shouldShow ? 'flex' : 'none';
+        launcher.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+    }
+
     function buildUI() {
         // 1) Ladda fonter/ikoner (Inter + Material Symbols)
         injectGoogleAssets();
@@ -1730,18 +1750,26 @@
         // 3) In i dokumentet
         document.body.appendChild(panel);
 
+        launcher = h('button', {
+            class: `${NS}-launcher`,
+            type: 'button',
+            'aria-label': t('widgetTitle'),
+            style: { display: 'none' },
+            onclick: (e) => {
+                markKeyboardActivation(e);
+                togglePanel(true, e);
+            }
+        }, iconEl('header'));
+        document.body.appendChild(launcher);
+        updateLauncherForViewport();
+
         const onPanelActivity = () => {
             if (panel && panel.style.display === 'block') markWidgetActivity();
         };
         panel.addEventListener('pointerdown', onPanelActivity);
         panel.addEventListener('keydown', onPanelActivity, true);
 
-        const HAS_HOVER = (typeof matchMedia === 'function') &&
-            (matchMedia('(hover: hover)').matches || matchMedia('(any-hover: hover)').matches);
-        const DESKTOP = (typeof matchMedia === 'function') &&
-            !matchMedia('(max-width: 767.98px)').matches;
-
-        if (HAS_HOVER && DESKTOP) {
+        if (isDesktopHoverContext()) {
             enableHoverMiniBehavior(); // aktivera enter/leave
         }
 
@@ -1761,7 +1789,7 @@
         reflowToolsForViewport();
 
         // 7) Aktivera hover-minimera/expandera på desktop (≥768px)
-        if (!isSmallScreen()) {
+        if (isDesktopHoverContext()) {
             enableHoverMiniBehavior();
             // (valfritt) starta i miniläge på desktop:
             // panel.classList.add('rw-mini');
@@ -1776,8 +1804,12 @@
             // Toggle hover-beteende beroende på storlek
             if (isSmallScreen()) {
                 // <768px – ta bort hoverlyssnare (mobilbeteende)
-                panel.removeEventListener?.('mouseenter', panel.__rwOnEnter);
-                panel.removeEventListener?.('mouseleave', panel.__rwOnLeave);
+                if (panel.__rwOnEnter) panel.removeEventListener('mouseenter', panel.__rwOnEnter);
+                if (panel.__rwOnLeave) panel.removeEventListener('mouseleave', panel.__rwOnLeave);
+                panel.__rwOnEnter = null;
+                panel.__rwOnLeave = null;
+                cancelAutoMinimize();
+                panel.classList.remove('rw-mini');
             } else {
                 // ≥768px – säkerställ att hoverbeteendet är aktivt
                 enableHoverMiniBehavior();
@@ -1785,6 +1817,7 @@
 
             // Lägg kvar din befintliga omritning av verktygsraden
             reflowToolsForViewport();
+            updateLauncherForViewport();
         };
 
         if (mqSmall.addEventListener) {
@@ -1792,6 +1825,15 @@
         } else if (mqSmall.addListener) {
             // äldre Safari
             mqSmall.addListener(onViewportChange);
+        }
+
+        const hoverSources = [hoverMq, anyHoverMq].filter(Boolean);
+        if (hoverSources.length) {
+            const handler = () => onViewportChange();
+            hoverSources.forEach((mq) => {
+                if (mq.addEventListener) mq.addEventListener('change', handler);
+                else if (mq.addListener) mq.addListener(handler);
+            });
         }
     }
 
@@ -1840,9 +1882,12 @@
     ========================== */
     function togglePanel(force, evt) {
         const show = force != null ? force : (panel.style.display === 'none');
-        panel.style.display = show ? 'block' : 'none';
+        const useLauncher = shouldUseLauncher();
 
         if (!show) {
+            cancelAutoMinimize();
+            panel.style.display = 'none';
+
             // stäng: ta bort ev. fokusfälla och återställ fokus
             if (typeof removeFocusTrap === 'function') {
                 removeFocusTrap();
@@ -1852,8 +1897,14 @@
                 prevActiveEl.focus();
                 prevActiveEl = null;
             }
+
+            updateLauncherForViewport();
             return;
         }
+
+        panel.style.display = 'block';
+
+        if (useLauncher && launcher) launcher.style.display = 'none';
 
         // — ÖPPNA —
         // 1) spara vem som hade fokus så vi kan ge tillbaka vid stängning
@@ -1871,7 +1922,11 @@
 
         // 5) (valfritt) auto-minimera efter inaktivitet bara vid kb-aktivering
         cancelAutoMinimize();
-        scheduleAutoMinimize({ ignoreFocus: true, ignoreHover: true });
+        if (isDesktopHoverContext()) {
+            scheduleAutoMinimize({ ignoreFocus: true, ignoreHover: true });
+        }
+
+        updateLauncherForViewport();
     }
 
     function deactivateAid(t) {
