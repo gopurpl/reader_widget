@@ -151,6 +151,53 @@ och per kunddomän, vilket ger en god approximation utan att lagra persondata.
 
 ---
 
+## Backend för statistik (Node)
+
+En minimal backend ligger i `backend/`. Den tar emot events från widgeten och ger en
+summering som `admin.html` kan läsa.
+
+### API-endpoints
+
+| Metod | Path          | Beskrivning                                       |
+|-------|---------------|----------------------------------------------------|
+| POST  | `/api/events` | Tar emot event (payload enligt ovan).              |
+| GET   | `/api/stats`  | Returnerar summerad data per kund/domän.           |
+| GET   | `/health`     | Enkel hälso-check (`{ status: "ok" }`).            |
+
+*Skicka `Authorization: Bearer <RW_SHARED_SECRET>` om du satt env-variabeln `RW_SHARED_SECRET`
+vid uppstart. Om variabeln saknas krävs ingen autentisering.*
+
+### Kör lokalt
+
+```bash
+cd backend
+node server.js
+```
+
+Servern startar på `http://localhost:8787`. Pekar du `ANALYTICS_ENDPOINT` mot
+`http://localhost:8787/api/events` kan du testa loggning lokalt.
+
+För att verifiera filbaserad lagring utan att starta servern:
+
+```bash
+cd backend
+npm run test:storage
+```
+
+Resultatet sparas i `backend/data/usage.json` (git-ignoreras).
+
+### Produktion
+
+1. Distribuera `backend/` till en Node-miljö (t.ex. serverless, container eller liten VM).
+2. Sätt miljövariabler:
+   - `PORT` (valfritt, standard 8787)
+   - `RW_SHARED_SECRET` (valfritt men starkt rekommenderat för att hindra obehöriga POST:ar)
+3. Rikta `ANALYTICS_ENDPOINT` i `allowlist.loader.js` mot din publika adress, t.ex.
+   `https://stats.din-domän.se/api/events`.
+4. Låt `admin.html` anropa sammanställningen via `?endpoint=https://stats.din-domän.se/api/stats`.
+
+---
+
 ## Kund-CSS exempel
 
 ```css

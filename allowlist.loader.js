@@ -1,7 +1,7 @@
 (function () {
   var VERSION = "0.1.3";
   var CUSTOMER_DIR = "customer_css/";
-  var ANALYTICS_ENDPOINT = ""; // Sätt till ditt API-endpoint för användningsstatistik
+  var ANALYTICS_ENDPOINT = "http://localhost:8787/api/events"; // Sätt till ditt API-endpoint för användningsstatistik
 
   var ALLOW = [
     "localhost",

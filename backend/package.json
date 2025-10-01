@@ -1,0 +1,11 @@
+{
+  "name": "reader-widget-analytics-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal backend for ReaderWidget usage analytics",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "NODE_ENV=development node server.js",
+    "test:storage": "node scripts/storage-smoke.js"
+  }
+}
